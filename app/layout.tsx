@@ -11,23 +11,10 @@ export const metadata: Metadata = {
   title: 'CLEOHN - Nigerian CAC Registration Agency',
   description: 'Trusted Nigerian CAC Registration Agency for Business Name, Company (LLC), NGO/Trustees, TIN, SCUML, and Trademark registration services.',
   generator: 'Ak David',
-  // icons: {
-  //   icon: [
-  //     {
-  //       url: '/icon-light-32x32.png',
-  //       media: '(prefers-color-scheme: light)',
-  //     },
-  //     {
-  //       url: '/icon-dark-32x32.png',
-  //       media: '(prefers-color-scheme: dark)',
-  //     },
-  //     {
-  //       url: '/icon.svg',
-  //       type: 'image/svg+xml',
-  //     },
-  //   ],
-  //   apple: '/apple-icon.png',
-  // },
+  icons: {
+    icon: '/logo.jpeg',
+    apple: '/logo.jpeg',
+  },
 }
 
 export default function RootLayout({

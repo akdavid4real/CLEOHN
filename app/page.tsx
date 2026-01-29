@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Nav } from '@/components/nav'
 import { Footer } from '@/components/footer'
-import { Building2, FileText, Users, Receipt, Shield, Award, CheckCircle2, Clock, HeadphonesIcon } from 'lucide-react'
+import { Building2, FileText, Users, Receipt, Shield, Award, CheckCircle2, Clock, HeadphonesIcon, Printer, Monitor } from 'lucide-react'
 
 export default function Home() {
   return (
@@ -15,7 +15,7 @@ export default function Home() {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img 
-            src="/image.png" 
+            src="/3.jpg.jpeg" 
             alt="Hero Background" 
             className="w-full h-full object-cover opacity-100"
           />
@@ -200,6 +200,40 @@ export default function Home() {
               <h3 className="text-lg font-semibold">Trademark</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Protect your brand identity with official trademark registration.
+              </p>
+              <Link href="/services">
+                <Button variant="link" className="text-accent p-0 h-auto text-sm">
+                  Learn more →
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-2 hover:shadow-lg hover:border-accent/30 transition-all duration-300 group">
+            <CardContent className="p-6 space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                <Printer className="h-6 w-6 text-accent" />
+              </div>
+              <h3 className="text-lg font-semibold">Printing Services</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                High-quality printing solutions for your business branding and marketing.
+              </p>
+              <Link href="/services">
+                <Button variant="link" className="text-accent p-0 h-auto text-sm">
+                  Learn more →
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-2 hover:shadow-lg hover:border-accent/30 transition-all duration-300 group">
+            <CardContent className="p-6 space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                <Monitor className="h-6 w-6 text-accent" />
+              </div>
+              <h3 className="text-lg font-semibold">Website Development</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Professional website solutions to establish and grow your online presence.
               </p>
               <Link href="/services">
                 <Button variant="link" className="text-accent p-0 h-auto text-sm">

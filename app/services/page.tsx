@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Link from 'next/link'
-import { FileText, Building2, Users, Receipt, Shield, Award, CheckCircle2, Briefcase, Lock, FileCheck, Landmark, Globe, Calculator, type LucideIcon } from 'lucide-react'
+import { FileText, Building2, Users, Receipt, Shield, Award, CheckCircle2, Briefcase, Lock, FileCheck, Landmark, Globe, Calculator, Printer, Monitor, type LucideIcon } from 'lucide-react'
 
 interface Package {
   name: string
@@ -285,6 +285,35 @@ export default function ServicesPage() {
           ]
         }
       ]
+    },
+    {
+      id: 'digital',
+      label: 'Creative & Digital',
+      icon: Monitor,
+      services: [
+        {
+          icon: Printer,
+          title: 'Printing Services',
+          description: 'High-quality printing solutions for your business branding and marketing materials.',
+          info: [
+            'Business cards and letterheads.',
+            'Brochures, flyers, and posters.',
+            'Customized corporate gift items.',
+            'Large format banners and signage.'
+          ]
+        },
+        {
+          icon: Monitor,
+          title: 'Website Design & Development',
+          description: 'Professional website solutions to establish your online presence and grow your business.',
+          info: [
+            'Responsive and mobile-friendly designs.',
+            'E-commerce and business portfolio websites.',
+            'SEO optimization and digital marketing integration.',
+            'Website maintenance and technical support.'
+          ]
+        }
+      ]
     }
   ]
 
@@ -301,7 +330,7 @@ export default function ServicesPage() {
         </div>
 
         <Tabs defaultValue="formation" className="max-w-5xl mx-auto">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 h-auto p-1 bg-muted/50 rounded-xl mb-8">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4 h-auto p-1 bg-muted/50 rounded-xl mb-8">
             {categories.map((cat: ServiceCategory) => (
               <TabsTrigger 
                 key={cat.id} 
