@@ -37,9 +37,9 @@ export function Nav() {
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center space-x-2">
               <img src="/logo.png" alt="CLEOHN Logo" className="h-10 w-auto rounded" />
-              <div className="text-2xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
+              {/* <div className="text-2xl font-bold bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">
                 CLEOHN
-              </div>
+              </div> */}
             </Link>
 
             {/* Desktop Navigation */}
