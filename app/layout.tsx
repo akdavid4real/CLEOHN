@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   description: 'Trusted Nigerian CAC Registration Agency for Business Name, Company (LLC), NGO/Trustees, TIN, SCUML, and Trademark registration services.',
   generator: 'Ak David',
   icons: {
-    icon: '/logo.jpeg',
-    apple: '/logo.jpeg',
+    icon: '/logoicon.png',
+    apple: '/logoicon.png',
   },
 }
 
