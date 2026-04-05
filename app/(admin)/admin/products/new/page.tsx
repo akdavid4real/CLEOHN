@@ -69,19 +69,17 @@ export default function NewProductPage() {
         const file = files[i];
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("upload_preset", "ml_default"); // You'll need to create this in Cloudinary
 
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
+        const response = await fetch("/api/admin/upload", {
+          method: "POST",
+          body: formData,
+        });
 
         if (response.ok) {
           const data = await response.json();
           uploadedUrls.push(data.secure_url);
+        } else {
+          toast.error(`Failed to upload ${file.name}`);
         }
       }
 
