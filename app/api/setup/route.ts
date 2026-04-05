@@ -37,7 +37,12 @@ export async function POST(request: Request) {
     }
 
     // Create admin user
-    const hashedPassword = await hash(adminPassword)
+    const hashedPassword = await hash(adminPassword, {
+      memoryCost: 19456,
+      timeCost: 2,
+      outputLen: 32,
+      parallelism: 1,
+    })
     const adminId = nanoid()
 
     await db.insert(users).values({

@@ -10,6 +10,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, password } = body;
 
+    console.log('Login attempt:', { email, passwordLength: password?.length });
+
     if (!email || !password) {
       return Response.json(
         { error: "Email and password are required" },
@@ -23,6 +25,8 @@ export async function POST(request: Request) {
       .where(eq(users.email, email))
       .get();
 
+    console.log('User found:', !!existingUser);
+
     if (!existingUser) {
       return Response.json(
         { error: "Invalid email or password" },
@@ -30,7 +34,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const validPassword = await verify(existingUser.passwordHash, password);
+    let validPassword = false;
+    try {
+      validPassword = await verify(existingUser.passwordHash, password, {
+        memoryCost: 19456,
+        timeCost: 2,
+        outputLen: 32,
+        parallelism: 1,
+      });
+      console.log('Password valid:', validPassword);
+    } catch (verifyError) {
+      console.error('Password verification error:', verifyError);
+      return Response.json(
+        { error: "Invalid email or password" },
+        { status: 400 }
+      );
+    }
 
     if (!validPassword) {
       return Response.json(
@@ -59,6 +78,8 @@ export async function POST(request: Request) {
       maxAge: 30 * 24 * 60 * 60,
       path: "/",
     });
+
+    console.log('Login successful for:', email);
 
     return Response.json(
       { success: true, userId: existingUser.id },
