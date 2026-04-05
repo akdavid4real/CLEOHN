@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Menu, X, MapPin, Mail, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { CartButton } from '@/components/cart/cart-button'
 
 export function Nav() {
   const [isOpen, setIsOpen] = useState(false)
@@ -59,6 +60,11 @@ export function Nav() {
                   Pricing
                 </Button>
               </Link>
+              <Link href="/shop">
+                <Button variant="ghost" className="rounded-full text-sm h-9">
+                  Shop
+                </Button>
+              </Link>
               <Link href="/videos">
                 <Button variant="ghost" className="rounded-full text-sm h-9">
                   Videos
@@ -69,15 +75,19 @@ export function Nav() {
                   Contact
                 </Button>
               </Link>
+              <CartButton />
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="md:hidden p-1.5 rounded-lg hover:bg-muted transition-colors"
-            >
-              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+            {/* Mobile Menu & Cart */}
+            <div className="md:hidden flex items-center gap-2">
+              <CartButton />
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+              >
+                {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
 
           {/* Mobile Navigation */}
@@ -96,6 +106,11 @@ export function Nav() {
               <Link href="/pricing" onClick={() => setIsOpen(false)}>
                 <Button variant="ghost" className="w-full rounded-lg text-sm justify-start h-10">
                   Pricing
+                </Button>
+              </Link>
+              <Link href="/shop" onClick={() => setIsOpen(false)}>
+                <Button variant="ghost" className="w-full rounded-lg text-sm justify-start h-10">
+                  Shop
                 </Button>
               </Link>
               <Link href="/videos" onClick={() => setIsOpen(false)}>

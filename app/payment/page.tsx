@@ -14,12 +14,15 @@ export default function PaymentPage() {
   const [selectedService, setSelectedService] = useState('')
 
   const services = [
-    { name: 'CAC Business Name', price: '25,000' },
-    { name: 'Company (LLC)', price: '75,000' },
-    { name: 'NGO/Trustees', price: '100,000' },
-    { name: 'TIN Registration', price: '15,000' },
-    { name: 'SCUML Registration', price: '50,000' },
-    { name: 'Trademark', price: '80,000' }
+    { name: 'Business Name - Standard Package', price: '45,000' },
+    { name: 'Business Name - VIP Package', price: '60,000' },
+    { name: 'Company (LLC) - Standard Package', price: '100,000' },
+    { name: 'Company (LLC) - Complete Ownership Package', price: '165,000' },
+    { name: 'Company (LLC) - VIP Package', price: '270,000' },
+    { name: 'Company (LLC) - Premium Exclusive Package', price: '650,000' },
+    { name: 'Incorporated Trustee - Standard Package', price: '150,000' },
+    { name: 'Incorporated Trustee - VIP Package', price: '200,000' },
+    { name: 'Trademark', price: '70,000' }
   ]
 
   return (

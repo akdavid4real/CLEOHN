@@ -4,8 +4,17 @@ import { Analytics } from '@vercel/analytics/next'
 import { FloatingWhatsApp } from '@/components/floating-whatsapp'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const geist = Geist({ 
+  subsets: ["latin"],
+  display: 'swap',
+  variable: '--font-geist',
+});
+
+const geistMono = Geist_Mono({ 
+  subsets: ["latin"],
+  display: 'swap',
+  variable: '--font-geist-mono',
+});
 
 export const metadata: Metadata = {
   title: 'CLEOHN - Nigerian CAC Registration Agency',
@@ -23,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
       <body className={`font-sans antialiased`}>
         {children}
         <FloatingWhatsApp />

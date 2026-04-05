@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Nav } from '@/components/nav'
@@ -14,10 +15,14 @@ export default function Home() {
       <section className="relative overflow-hidden py-16 lg:py-28">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          <img 
-            src="/3.jpg.jpeg" 
+          <Image 
+            src="https://res.cloudinary.com/dkxelxdai/image/upload/v1775414076/cleohn/hero-background.jpg" 
             alt="Hero Background" 
-            className="w-full h-full object-cover opacity-100"
+            fill
+            priority
+            quality={75}
+            sizes="100vw"
+            className="object-cover opacity-100"
           />
           <div className="absolute inset-0 bg-linear-to-b from-background/40 via-background/60 to-background" />
         </div>
