@@ -11,30 +11,31 @@ export default function Home() {
     <div className="min-h-screen">
       <Nav />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-16 lg:py-28">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0">
-          <Image 
-            src="https://res.cloudinary.com/dkxelxdai/image/upload/v1775414076/cleohn/hero-background.jpg" 
-            alt="Hero Background" 
-            fill
-            priority
-            quality={75}
-            sizes="100vw"
-            className="object-cover opacity-100"
-          />
-          <div className="absolute inset-0 bg-linear-to-b from-background/40 via-background/60 to-background" />
-        </div>
+      <main>
+        {/* Hero Section */}
+        <section className="relative overflow-hidden py-16 lg:py-28">
+          {/* Background Image */}
+          <div className="absolute inset-0 z-0">
+            <Image 
+              src="https://res.cloudinary.com/dkxelxdai/image/upload/v1775414076/cleohn/hero-background.jpg" 
+              alt="Hero Background" 
+              fill
+              priority
+              quality={75}
+              sizes="100vw"
+              className="object-cover opacity-100"
+            />
+            <div className="absolute inset-0 bg-linear-to-b from-background/40 via-background/60 to-background" />
+          </div>
 
-        <div className="container relative z-10 mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <h1 className="text-4xl lg:text-6xl font-bold leading-tight text-balance">
-              Register Your Business with{' '}
-              <span className="bg-linear-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                Confidence
-              </span>
-            </h1>
+          <div className="container relative z-10 mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="max-w-3xl mx-auto text-center space-y-6">
+              <h1 className="text-4xl lg:text-6xl font-bold leading-tight text-balance">
+                Register Your Business with{' '}
+                <span className="bg-linear-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+                  Confidence
+                </span>
+              </h1>
             <p className="text-lg lg:text-2xl text-muted-foreground leading-relaxed max-w-2xl mx-auto text-pretty">
               Your Compliance Buddy. We help build the legal structure your business needs while keeping you compliant through the years.
             </p>
@@ -54,10 +55,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Why Choose Us Section */}
-      <section className="container mx-auto px-3 sm:px-6 lg:px-8 py-10 lg:py-12">
-        <div className="text-center mb-10 space-y-2">
-          <h2 className="text-2xl lg:text-3xl font-bold text-balance">Why Choose CLEOHN?</h2>
+        {/* Why Choose Us Section */}
+        <section className="container mx-auto px-3 sm:px-6 lg:px-8 py-10 lg:py-12">
+          <div className="text-center mb-10 space-y-2">
+            <h2 className="text-2xl lg:text-3xl font-bold text-balance">Why Choose CLEOHN?</h2>
           <p className="text-base lg:text-lg text-muted-foreground max-w-xl mx-auto text-pretty">
             We combine expertise, efficiency, and excellent service to make your registration seamless.
           </p>
@@ -102,10 +103,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Services Cards Section */}
-      <section className="container mx-auto px-3 sm:px-6 lg:px-8 py-10 lg:py-12">
-        <div className="text-center mb-10 space-y-2">
-          <h2 className="text-2xl lg:text-3xl font-bold text-balance">Our Services</h2>
+        {/* Services Cards Section */}
+        <section className="container mx-auto px-3 sm:px-6 lg:px-8 py-10 lg:py-12">
+          <div className="text-center mb-10 space-y-2">
+            <h2 className="text-2xl lg:text-3xl font-bold text-balance">Our Services</h2>
           <p className="text-base lg:text-lg text-muted-foreground max-w-xl mx-auto text-pretty">
             Complete CAC registration services tailored to your business needs.
           </p>
@@ -250,24 +251,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="container mx-auto px-3 sm:px-6 lg:px-8 py-10 lg:py-12">
-        <Card className="rounded-2xl border-2 bg-linear-to-br from-primary/5 via-accent/5 to-primary/5 max-w-4xl mx-auto overflow-hidden">
-          <CardContent className="p-6 sm:p-10 lg:p-12 text-center space-y-6">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">
-              Ready to Register Your Business?
-            </h2>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto text-pretty">
-              Join thousands of satisfied businesses who trust CLEOHN for their CAC registration needs.
-            </p>
-            <Link href="/pricing">
-              <Button size="lg" className="rounded-full px-8 py-5 text-base bg-accent hover:bg-accent/90 shadow-md shadow-accent/10">
-                View Our Pricing
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </section>
+        {/* CTA Section */}
+        <section className="container mx-auto px-3 sm:px-6 lg:px-8 py-10 lg:py-12">
+          <Card className="rounded-2xl border-2 bg-linear-to-br from-primary/5 via-accent/5 to-primary/5 max-w-4xl mx-auto overflow-hidden">
+            <CardContent className="p-6 sm:p-10 lg:p-12 text-center space-y-6">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-balance">
+                Ready to Register Your Business?
+              </h2>
+              <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto text-pretty">
+                Join thousands of satisfied businesses who trust CLEOHN for their CAC registration needs.
+              </p>
+              <Link href="/pricing">
+                <Button size="lg" className="rounded-full px-8 py-5 text-base bg-accent hover:bg-accent/90 shadow-md shadow-accent/10 min-h-[48px]">
+                  View Our Pricing
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </section>
+      </main>
 
       <Footer />
     </div>
