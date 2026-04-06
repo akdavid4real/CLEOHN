@@ -90,26 +90,46 @@ export default function EditProductPage() {
 
   const fetchProduct = async () => {
     try {
-      const response = await fetch(`/api/admin/products/${productId}`);
+      console.log('[Edit] Fetching product:', productId);
+      const response = await fetch(`/api/admin/products/${productId}`, {
+        cache: 'no-store',
+      });
+      
+      console.log('[Edit] Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('[Edit] Product data:', data);
         const product = data.product;
+        
+        if (!product) {
+          toast.error('Product not found');
+          router.push('/admin/products');
+          return;
+        }
+        
         setFormData({
-          name: product.name,
-          slug: product.slug,
+          name: product.name || '',
+          slug: product.slug || '',
           description: product.description || "",
-          price: product.price.toString(),
+          price: product.price?.toString() || '',
           compareAtPrice: product.compareAtPrice?.toString() || "",
           sku: product.sku || "",
-          stock: product.stock.toString(),
-          categoryId: product.categoryId,
-          isActive: product.isActive,
+          stock: product.stock?.toString() || '0',
+          categoryId: product.categoryId || '',
+          isActive: product.isActive ?? true,
         });
         setProductImages(product.images || []);
+      } else {
+        const error = await response.json();
+        console.error('[Edit] Failed to fetch product:', error);
+        toast.error('Failed to load product');
+        router.push('/admin/products');
       }
     } catch (error) {
-      console.error("Failed to fetch product:", error);
+      console.error("[Edit] Failed to fetch product:", error);
       toast.error("Failed to load product");
+      router.push('/admin/products');
     } finally {
       setIsLoading(false);
     }

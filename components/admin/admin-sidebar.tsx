@@ -12,8 +12,10 @@ import {
   LogOut,
   Settings,
   Tag,
+  Home,
 } from "lucide-react";
 import { toast } from "sonner";
+import Image from "next/image";
 
 const sidebarLinks = [
   {
@@ -68,39 +70,64 @@ export function AdminSidebar() {
   };
 
   return (
-    <div className="w-64 bg-slate-900 text-white flex flex-col h-screen border-r border-slate-700">
-      <div className="p-6 border-b border-slate-700">
-        <h1 className="text-2xl font-bold">CLEOHN Admin</h1>
+    <div className="w-64 bg-white flex flex-col h-screen border-r border-gray-200">
+      {/* Logo */}
+      <div className="p-6 border-b border-gray-200">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="relative w-10 h-10">
+            <Image
+              src="/logoicon.png"
+              alt="CLEOHN"
+              fill
+              className="object-contain"
+            />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">CLEOHN</h1>
+            <p className="text-xs text-gray-500">Admin Panel</p>
+          </div>
+        </Link>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
         {sidebarLinks.map((link) => {
           const Icon = link.icon;
           const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
 
           return (
             <Link key={link.href} href={link.href}>
-              <Button
-                variant={isActive ? "default" : "ghost"}
-                className={cn("w-full justify-start", isActive && "bg-blue-600 hover:bg-blue-700")}
+              <div
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-all cursor-pointer",
+                  isActive
+                    ? "bg-purple-50 text-purple-700 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
+                )}
               >
-                <Icon className="mr-2 h-4 w-4" />
-                {link.label}
-              </Button>
+                <Icon className={cn("h-5 w-5", isActive ? "text-purple-700" : "text-gray-500")} />
+                <span className="text-sm">{link.label}</span>
+              </div>
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-700">
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-red-400 hover:text-red-300"
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-200 space-y-2">
+        <Link href="/">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-all cursor-pointer">
+            <Home className="h-5 w-5 text-gray-500" />
+            <span className="text-sm">View Site</span>
+          </div>
+        </Link>
+        <div
           onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all cursor-pointer"
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
+          <LogOut className="h-5 w-5" />
+          <span className="text-sm font-medium">Logout</span>
+        </div>
       </div>
     </div>
   );

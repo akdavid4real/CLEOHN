@@ -13,7 +13,8 @@
     "seed": "tsx scripts/seed-admin.ts",
     "seed:services": "tsx scripts/seed-services-from-frontend.ts",
     "seed:featured": "tsx scripts/seed-featured-packages.ts",
-    "seed:products": "tsx scripts/seed-products.ts"
+    "seed:products": "tsx scripts/seed-products.ts",
+    "seed:products-sample": "tsx scripts/seed-products-sample.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
