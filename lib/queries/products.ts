@@ -24,19 +24,21 @@ export async function getAllCategories() {
 }
 
 export async function getCategoryById(id: string) {
-  return db
+  const result = await db
     .select()
     .from(productCategories)
     .where(eq(productCategories.id, id))
-    .get();
+    .limit(1);
+  return result[0];
 }
 
 export async function getCategoryBySlug(slug: string) {
-  return db
+  const result = await db
     .select()
     .from(productCategories)
     .where(eq(productCategories.slug, slug))
-    .get();
+    .limit(1);
+  return result[0];
 }
 
 export async function createCategory(input: CreateProductCategoryInput) {
@@ -88,11 +90,13 @@ export async function getProductsByCategory(categoryId: string) {
 }
 
 export async function getProductById(id: string) {
-  return db.select().from(products).where(eq(products.id, id)).get();
+  const result = await db.select().from(products).where(eq(products.id, id)).limit(1);
+  return result[0];
 }
 
 export async function getProductBySlug(slug: string) {
-  return db.select().from(products).where(eq(products.slug, slug)).get();
+  const result = await db.select().from(products).where(eq(products.slug, slug)).limit(1);
+  return result[0];
 }
 
 export async function getProductWithDetails(id: string) {
@@ -159,12 +163,13 @@ export async function getProductImages(productId: string) {
 }
 
 export async function getPrimaryImage(productId: string) {
-  return db
+  const result = await db
     .select()
     .from(productImages)
     .where(eq(productImages.productId, productId))
     .where(eq(productImages.isPrimary, true))
-    .get();
+    .limit(1);
+  return result[0];
 }
 
 export async function createProductImage(input: CreateProductImageInput) {

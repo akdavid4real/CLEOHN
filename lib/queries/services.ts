@@ -16,11 +16,13 @@ export async function getAllServices() {
 }
 
 export async function getServiceById(id: string) {
-  return db.select().from(services).where(eq(services.id, id)).get();
+  const result = await db.select().from(services).where(eq(services.id, id)).limit(1);
+  return result[0];
 }
 
 export async function getServiceBySlug(slug: string) {
-  return db.select().from(services).where(eq(services.slug, slug)).get();
+  const result = await db.select().from(services).where(eq(services.slug, slug)).limit(1);
+  return result[0];
 }
 
 export async function getServiceWithPackages(serviceId: string) {
@@ -91,11 +93,12 @@ export async function getAllServicePackages(serviceId: string) {
 }
 
 export async function getPackageById(id: string) {
-  return db
+  const result = await db
     .select()
     .from(servicePackages)
     .where(eq(servicePackages.id, id))
-    .get();
+    .limit(1);
+  return result[0];
 }
 
 export async function getPackageWithFeatures(packageId: string) {
