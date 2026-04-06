@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { getSession } from "@/lib/auth/session";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -9,16 +10,30 @@ cloudinary.config({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[Upload] Starting upload process');
+    
+    // Check authentication
+    const session = await getSession();
+    if (!session || session.user.role !== "admin") {
+      console.log('[Upload] Unauthorized access attempt');
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.log('[Upload] Parsing form data');
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
     if (!file) {
+      console.log('[Upload] No file provided');
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
+
+    console.log('[Upload] File received:', file.name, file.type, file.size);
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    console.log('[Upload] Uploading to Cloudinary...');
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
@@ -27,8 +42,13 @@ export async function POST(request: NextRequest) {
             resource_type: "image",
           },
           (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
+            if (error) {
+              console.error('[Upload] Cloudinary error:', error);
+              reject(error);
+            } else {
+              console.log('[Upload] Cloudinary success:', result?.secure_url);
+              resolve(result);
+            }
           }
         )
         .end(buffer);
@@ -36,9 +56,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("[Upload] Upload error:", error);
     return NextResponse.json(
-      { error: "Failed to upload image" },
+      { error: "Failed to upload image", details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

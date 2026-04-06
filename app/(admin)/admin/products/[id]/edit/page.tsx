@@ -120,14 +120,18 @@ export default function EditProductPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log('[Client] Starting image upload:', file.name, file.type, file.size);
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      console.error('[Client] Invalid file type:', file.type);
       toast.error('Please select an image file');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
+      console.error('[Client] File too large:', file.size);
       toast.error('Image size must be less than 5MB');
       return;
     }
@@ -138,15 +142,20 @@ export default function EditProductPage() {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
 
+      console.log('[Client] Sending to /api/admin/upload');
       const response = await fetch('/api/admin/upload', {
         method: 'POST',
         body: uploadFormData,
       });
 
+      console.log('[Client] Upload response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('[Client] Upload successful:', data.secure_url);
         
         // Add image to product
+        console.log('[Client] Adding image to product:', productId);
         const addImageResponse = await fetch(`/api/admin/products/${productId}/images`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -157,21 +166,26 @@ export default function EditProductPage() {
           }),
         });
 
+        console.log('[Client] Add image response status:', addImageResponse.status);
+
         if (addImageResponse.ok) {
           const newImage = await addImageResponse.json();
+          console.log('[Client] Image added successfully:', newImage);
           setProductImages(prev => [...prev, newImage]);
           toast.success('Image uploaded successfully');
           await fetchProduct();
         } else {
+          const errorData = await addImageResponse.json();
+          console.error('[Client] Failed to add image:', errorData);
           toast.error('Failed to save image');
         }
       } else {
         const error = await response.json();
-        console.error('Upload error:', error);
-        toast.error('Failed to upload image');
+        console.error('[Client] Upload failed:', error);
+        toast.error(error.error || 'Failed to upload image');
       }
     } catch (error) {
-      console.error('Image upload error:', error);
+      console.error('[Client] Image upload error:', error);
       toast.error('Failed to upload image');
     } finally {
       setIsUploadingImage(false);
