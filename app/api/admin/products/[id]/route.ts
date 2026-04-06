@@ -2,6 +2,9 @@ import { getSession } from "@/lib/auth/session";
 import { getProductWithDetails, updateProduct, deleteProduct } from "@/lib/queries/products";
 import { updateProductSchema } from "@/lib/validations/product";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -6,6 +6,9 @@ import { products, productCategories, productImages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const session = await getSession();

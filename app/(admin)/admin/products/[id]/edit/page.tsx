@@ -91,7 +91,7 @@ export default function EditProductPage() {
   const fetchProduct = async () => {
     try {
       console.log('[Edit] Fetching product:', productId);
-      const response = await fetch(`/api/admin/products/${productId}`, {
+      const response = await fetch(`/api/admin/products/${productId}?t=` + Date.now(), {
         cache: 'no-store',
       });
       
@@ -299,6 +299,7 @@ export default function EditProductPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        cache: 'no-store',
         body: JSON.stringify({
           ...formData,
           price: parseFloat(formData.price),
@@ -312,6 +313,7 @@ export default function EditProductPage() {
       if (response.ok) {
         toast.success("Product updated successfully");
         router.push("/admin/products");
+        router.refresh();
       } else {
         const data = await response.json();
         toast.error(data.error || "Failed to update product");

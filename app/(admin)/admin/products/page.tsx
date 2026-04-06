@@ -49,7 +49,7 @@ export default function AdminProductsPage() {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/products", {
+      const response = await fetch("/api/admin/products?t=" + Date.now(), {
         cache: 'no-store',
       });
       if (response.ok) {
