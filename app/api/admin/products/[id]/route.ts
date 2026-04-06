@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { getProductById, updateProduct, deleteProduct } from "@/lib/queries/products";
+import { getProductWithDetails, updateProduct, deleteProduct } from "@/lib/queries/products";
 import { updateProductSchema } from "@/lib/validations/product";
 
 export async function GET(
@@ -14,7 +14,7 @@ export async function GET(
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const product = await getProductById(id);
+    const product = await getProductWithDetails(id);
 
     if (!product) {
       return new Response("Product not found", { status: 404 });

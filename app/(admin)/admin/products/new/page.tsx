@@ -43,10 +43,15 @@ export default function NewProductPage() {
       const response = await fetch("/api/admin/categories");
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.categories || []);
+        console.log('Categories response:', data); // Debug log
+        setCategories(Array.isArray(data) ? data : data.categories || []);
+      } else {
+        console.error('Failed to fetch categories:', response.status);
+        toast.error('Failed to load categories');
       }
     } catch (error) {
       console.error("Failed to fetch categories:", error);
+      toast.error('Failed to load categories');
     }
   };
 
@@ -325,6 +330,11 @@ export default function NewProductPage() {
 
               <div className="col-span-2">
                 <Label htmlFor="categoryId">Category *</Label>
+                {categories.length === 0 && (
+                  <p className="text-sm text-red-500 mb-2">
+                    No categories found. Please create categories first.
+                  </p>
+                )}
                 <select
                   id="categoryId"
                   required
@@ -344,6 +354,11 @@ export default function NewProductPage() {
                     </option>
                   ))}
                 </select>
+                {categories.length > 0 && (
+                  <p className="text-sm text-green-600 mt-1">
+                    Found {categories.length} categories
+                  </p>
+                )}
               </div>
 
               <div className="col-span-2">

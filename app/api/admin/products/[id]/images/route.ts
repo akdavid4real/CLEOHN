@@ -36,15 +36,16 @@ export async function POST(
     }
 
     // Insert new image
-    await db.insert(productImages).values({
+    const [newImage] = await db.insert(productImages).values({
       id: nanoid(),
       productId: id,
       imageUrl,
+      altText: body.altText || null,
       isPrimary: isPrimary || false,
       order: order || 0,
-    });
+    }).returning();
 
-    return NextResponse.json({ success: true }, { status: 201 });
+    return NextResponse.json(newImage, { status: 201 });
   } catch (error) {
     console.error("Error uploading product image:", error);
     return NextResponse.json(
