@@ -8,9 +8,8 @@ config({ path: path.join(process.cwd(), ".env.local") });
 export default {
   schema: "./lib/db/schema.ts",
   out: "./drizzle",
-  dialect: "sqlite",
+  dialect: "postgresql",
   dbCredentials: {
     url: process.env.DATABASE_URL!,
-    authToken: process.env.DATABASE_AUTH_TOKEN,
   },
 } satisfies Config;
