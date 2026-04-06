@@ -73,6 +73,18 @@ async function handleChargeSuccess(event: any) {
   const { reference, amount, channel, currency, paid_at, metadata } = event.data;
 
   try {
+    // Check if transaction already exists FIRST to prevent duplicates
+    const [existingTransaction] = await db
+      .select()
+      .from(paymentTransactions)
+      .where(eq(paymentTransactions.paystackReference, reference))
+      .limit(1);
+
+    if (existingTransaction) {
+      console.log(`Transaction already recorded for reference: ${sanitizeForLog(reference)}`);
+      return;
+    }
+
     // Find order by reference
     const [order] = await db
       .select()
@@ -82,18 +94,6 @@ async function handleChargeSuccess(event: any) {
 
     if (!order) {
       console.error(`Order not found for reference: ${sanitizeForLog(reference)}`);
-      return;
-    }
-
-    // Check if transaction already exists
-    const existingTransaction = await db
-      .select()
-      .from(paymentTransactions)
-      .where(eq(paymentTransactions.paystackReference, reference))
-      .limit(1);
-
-    if (existingTransaction.length > 0) {
-      console.log(`Transaction already recorded for reference: ${sanitizeForLog(reference)}`);
       return;
     }
 
@@ -116,7 +116,7 @@ async function handleChargeSuccess(event: any) {
       channel: channel,
       currency: currency,
       paidAt: new Date(paid_at),
-      metadata: metadata || {},
+      metadata: JSON.stringify(metadata || {}),
     });
 
     console.log(`Order ${sanitizeForLog(reference)} marked as paid`);
@@ -160,7 +160,7 @@ async function handleChargeFailed(event: any) {
       status: "failed",
       channel: channel,
       currency: currency,
-      metadata: metadata || {},
+      metadata: JSON.stringify(metadata || {}),
     });
 
     console.log(`Order ${sanitizeForLog(reference)} marked as failed`);

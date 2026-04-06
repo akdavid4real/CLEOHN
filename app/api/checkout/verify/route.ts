@@ -63,54 +63,69 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(cancelUrl);
     }
 
+    // Check if transaction already exists to prevent duplicates
+    const [existingTransaction] = await db
+      .select()
+      .from(paymentTransactions)
+      .where(eq(paymentTransactions.paystackReference, reference))
+      .limit(1);
+
     // Check if payment was successful
     if (paymentData.status === "success") {
-      // Update order status
-      await db
-        .update(orders)
-        .set({
-          status: "paid",
-          paymentStatus: "paid",
-        })
-        .where(eq(orders.id, order.id));
+      // Update order status only if not already paid
+      if (order.paymentStatus !== "paid") {
+        await db
+          .update(orders)
+          .set({
+            status: "paid",
+            paymentStatus: "paid",
+          })
+          .where(eq(orders.id, order.id));
+      }
 
-      // Record payment transaction
-      await db.insert(paymentTransactions).values({
-        id: nanoid(),
-        orderId: order.id,
-        paystackReference: paymentData.reference,
-        amount: paymentData.amount / 100, // Convert from kobo to naira
-        status: "success",
-        channel: paymentData.channel,
-        currency: paymentData.currency,
-        paidAt: new Date(paymentData.paid_at),
-        metadata: paymentData.metadata,
-      });
+      // Record payment transaction only if it doesn't exist
+      if (!existingTransaction) {
+        await db.insert(paymentTransactions).values({
+          id: nanoid(),
+          orderId: order.id,
+          paystackReference: paymentData.reference,
+          amount: paymentData.amount / 100, // Convert from kobo to naira
+          status: "success",
+          channel: paymentData.channel,
+          currency: paymentData.currency,
+          paidAt: new Date(paymentData.paid_at),
+          metadata: JSON.stringify(paymentData.metadata || {}),
+        });
+      }
 
       // Redirect to success page
       const successUrl = createSafeRedirectUrl('/checkout/success', baseUrl, { order: order.orderNumber });
       return NextResponse.redirect(successUrl);
     } else {
       // Payment failed or abandoned
-      await db
-        .update(orders)
-        .set({
-          status: "cancelled",
-          paymentStatus: "failed",
-        })
-        .where(eq(orders.id, order.id));
+      if (order.paymentStatus !== "failed") {
+        await db
+          .update(orders)
+          .set({
+            status: "cancelled",
+            paymentStatus: "failed",
+          })
+          .where(eq(orders.id, order.id));
+      }
 
-      // Record failed transaction
-      await db.insert(paymentTransactions).values({
-        id: nanoid(),
-        orderId: order.id,
-        paystackReference: paymentData.reference,
-        amount: paymentData.amount / 100,
-        status: "failed",
-        channel: paymentData.channel,
-        currency: paymentData.currency,
-        metadata: paymentData.metadata,
-      });
+      // Record failed transaction only if it doesn't exist
+      if (!existingTransaction) {
+        await db.insert(paymentTransactions).values({
+          id: nanoid(),
+          orderId: order.id,
+          paystackReference: paymentData.reference,
+          amount: paymentData.amount / 100,
+          status: "failed",
+          channel: paymentData.channel,
+          currency: paymentData.currency,
+          metadata: JSON.stringify(paymentData.metadata || {}),
+        });
+      }
 
       const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'payment_failed' });
       return NextResponse.redirect(cancelUrl);
