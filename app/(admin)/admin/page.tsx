@@ -110,8 +110,8 @@ export default function AdminDashboard() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-3xl font-bold tracking-tight dark:text-white">Dashboard</h1>
+          <p className="text-muted-foreground dark:text-gray-400 mt-2">
             Welcome to the CLEOHN admin dashboard
           </p>
         </div>
@@ -149,9 +149,9 @@ export default function AdminDashboard() {
       </div>
 
       {stats && stats.pendingReviews > 0 && (
-        <Card className="bg-yellow-50 border-yellow-200">
+        <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 dark:text-yellow-200">
               <Star className="h-4 w-4" />
               Pending Reviews
             </CardTitle>
@@ -162,7 +162,7 @@ export default function AdminDashboard() {
             </Link>
           </CardHeader>
           <CardContent>
-            <p className="text-sm">
+            <p className="text-sm dark:text-yellow-100">
               You have {stats.pendingReviews} review{stats.pendingReviews > 1 ? "s" : ""} waiting for approval
             </p>
           </CardContent>
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
               {recentOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-3 border dark:border-gray-800 rounded-lg hover:bg-muted/50 dark:hover:bg-gray-800 transition-colors"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">

@@ -13,9 +13,12 @@ import {
   Settings,
   Tag,
   Home,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { useTheme } from "@/hooks/use-theme";
 
 const sidebarLinks = [
   {
@@ -53,6 +56,7 @@ const sidebarLinks = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -70,9 +74,9 @@ export function AdminSidebar() {
   };
 
   return (
-    <div className="w-64 bg-white flex flex-col h-screen border-r border-gray-200">
+    <div className="w-64 bg-white dark:bg-gray-900 flex flex-col h-screen border-r border-gray-200 dark:border-gray-800">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200 dark:border-gray-800">
         <Link href="/" className="flex items-center gap-3">
           <div className="relative w-10 h-10">
             <Image
@@ -83,8 +87,8 @@ export function AdminSidebar() {
             />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">CLEOHN</h1>
-            <p className="text-xs text-gray-500">Admin Panel</p>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">CLEOHN</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Admin Panel</p>
           </div>
         </Link>
       </div>
@@ -101,11 +105,11 @@ export function AdminSidebar() {
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg transition-all cursor-pointer",
                   isActive
-                    ? "bg-purple-50 text-purple-700 font-medium"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                 )}
               >
-                <Icon className={cn("h-5 w-5", isActive ? "text-purple-700" : "text-gray-500")} />
+                <Icon className={cn("h-5 w-5", isActive ? "text-purple-700 dark:text-purple-400" : "text-gray-500 dark:text-gray-400")} />
                 <span className="text-sm">{link.label}</span>
               </div>
             </Link>
@@ -114,16 +118,27 @@ export function AdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200 space-y-2">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
         <Link href="/">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-all cursor-pointer">
-            <Home className="h-5 w-5 text-gray-500" />
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer">
+            <Home className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             <span className="text-sm">View Site</span>
           </div>
         </Link>
         <div
+          onClick={toggleTheme}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer"
+        >
+          {theme === "light" ? (
+            <Moon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          ) : (
+            <Sun className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          )}
+          <span className="text-sm">{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
+        </div>
+        <div
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer"
         >
           <LogOut className="h-5 w-5" />
           <span className="text-sm font-medium">Logout</span>
