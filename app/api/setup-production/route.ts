@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { users, services, serviceItems, servicePackages, packageFeatures } from "@/lib/db/schema";
+import { users, services, serviceItems, servicePackages, packageFeatures, productCategories } from "@/lib/db/schema";
 import { hash } from "@node-rs/argon2";
 import { nanoid } from "nanoid";
 import { eq } from "drizzle-orm";
@@ -143,13 +143,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Services seeded successfully" });
     }
 
+    if (action === "seed-categories") {
+      const existingCategories = await db.select().from(productCategories).limit(1);
+      
+      if (existingCategories.length > 0) {
+        return NextResponse.json({ message: "Categories already exist" });
+      }
+
+      const categories = [
+        { name: "Printing Services", slug: "printing-services", description: "Professional printing solutions", order: 1 },
+        { name: "Books & Publications", slug: "books-publications", description: "Educational and business books", order: 2 },
+        { name: "Clothing & Apparel", slug: "clothing-apparel", description: "Branded clothing", order: 3 },
+        { name: "Office Supplies", slug: "office-supplies", description: "Essential office supplies", order: 4 },
+      ];
+
+      for (const category of categories) {
+        await db.insert(productCategories).values({ id: nanoid(), ...category });
+      }
+
+      return NextResponse.json({ message: "Categories seeded", count: categories.length });
+    }
+
     if (action === "check") {
       const userCount = await db.select().from(users).limit(1);
       const serviceCount = await db.select().from(services).limit(1);
+      const categoryCount = await db.select().from(productCategories).limit(1);
       
       return NextResponse.json({
         hasUsers: userCount.length > 0,
         hasServices: serviceCount.length > 0,
+        hasCategories: categoryCount.length > 0,
       });
     }
 
