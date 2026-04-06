@@ -16,11 +16,13 @@ export const getSession = cache(async () => {
     }
 
     // Get session from database
-    const session = await db
+    const sessionResult = await db
       .select()
       .from(sessions)
       .where(eq(sessions.id, sessionId))
-      .get();
+      .limit(1);
+
+    const session = sessionResult[0];
 
     if (!session) {
       return null;
@@ -33,11 +35,13 @@ export const getSession = cache(async () => {
     }
 
     // Get user data
-    const user = await db
+    const userResult = await db
       .select()
       .from(users)
       .where(eq(users.id, session.userId))
-      .get();
+      .limit(1);
+
+    const user = userResult[0];
 
     if (!user) {
       return null;

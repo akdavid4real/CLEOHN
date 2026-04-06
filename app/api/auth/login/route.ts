@@ -19,11 +19,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingUser = await db
+    const result = await db
       .select()
       .from(users)
       .where(eq(users.email, email))
-      .get();
+      .limit(1);
+
+    const existingUser = result[0];
 
     console.log('User found:', !!existingUser);
 
