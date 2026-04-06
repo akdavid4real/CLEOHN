@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { orders, orderItems } from "@/lib/db/schema";
 import { initializePayment } from "@/lib/paystack/initialize";
+import { validateEmail, validatePhone, validateAmount, sanitizeString, sanitizeMetadata } from "@/lib/paystack/validation";
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/paystack/rate-limit";
 import { nanoid } from "nanoid";
 
 export async function POST(request: NextRequest) {
@@ -9,10 +11,47 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { customer, items, total } = body;
 
+    // Rate limiting by email
+    const rateLimitResult = checkRateLimit(customer?.email || 'anonymous', 3, 300000); // 3 requests per 5 minutes
+    
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: "Too many payment attempts. Please try again later." },
+        { 
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult)
+        }
+      );
+    }
+
     // Validate required fields
     if (!customer?.email || !customer?.name || !customer?.phone || !customer?.address) {
       return NextResponse.json(
         { error: "Missing required customer information" },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    if (!validateEmail(customer.email)) {
+      return NextResponse.json(
+        { error: "Invalid email format" },
+        { status: 400 }
+      );
+    }
+
+    // Validate phone format
+    if (!validatePhone(customer.phone)) {
+      return NextResponse.json(
+        { error: "Invalid phone number format" },
+        { status: 400 }
+      );
+    }
+
+    // Validate amount
+    if (!validateAmount(total)) {
+      return NextResponse.json(
+        { error: "Invalid amount" },
         { status: 400 }
       );
     }
@@ -24,12 +63,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!total || total <= 0) {
-      return NextResponse.json(
-        { error: "Invalid total amount" },
-        { status: 400 }
-      );
-    }
+    // Sanitize customer data
+    const sanitizedCustomer = {
+      name: sanitizeString(customer.name, 100),
+      email: customer.email.toLowerCase().trim(),
+      phone: sanitizeString(customer.phone, 20),
+      address: sanitizeString(customer.address, 500),
+      notes: customer.notes ? sanitizeString(customer.notes, 1000) : null,
+    };
 
     // Create order reference
     const orderReference = `ORD-${nanoid(12)}`;
@@ -40,11 +81,11 @@ export async function POST(request: NextRequest) {
       .values({
         id: nanoid(),
         orderNumber: orderReference,
-        customerName: customer.name,
-        customerEmail: customer.email,
-        customerPhone: customer.phone,
-        customerAddress: customer.address,
-        notes: customer.notes || null,
+        customerName: sanitizedCustomer.name,
+        customerEmail: sanitizedCustomer.email,
+        customerPhone: sanitizedCustomer.phone,
+        customerAddress: sanitizedCustomer.address,
+        notes: sanitizedCustomer.notes,
         subtotal: total,
         tax: 0,
         shippingCost: 0,
@@ -70,15 +111,15 @@ export async function POST(request: NextRequest) {
 
     // Initialize Paystack payment
     const paymentResponse = await initializePayment({
-      email: customer.email,
+      email: sanitizedCustomer.email,
       amount: total * 100, // Convert to kobo
       reference: orderReference,
-      metadata: {
+      metadata: sanitizeMetadata({
         orderId: order.id,
         orderNumber: orderReference,
-        customerName: customer.name,
-        customerPhone: customer.phone,
-      },
+        customerName: sanitizedCustomer.name,
+        customerPhone: sanitizedCustomer.phone,
+      }),
     });
 
     if (!paymentResponse.status) {

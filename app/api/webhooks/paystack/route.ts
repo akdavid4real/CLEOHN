@@ -8,6 +8,11 @@ import {
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
+// Utility function to sanitize log inputs
+function sanitizeForLog(input: string): string {
+  return input.replace(/[\r\n\t]/g, '').substring(0, 100);
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get the raw body as text
@@ -38,7 +43,7 @@ export async function POST(request: NextRequest) {
     // Parse webhook event
     const event = parseWebhookEvent(payload);
 
-    console.log("Paystack webhook event:", event.event);
+    console.log("Paystack webhook event:", sanitizeForLog(event.event));
 
     // Handle different event types
     switch (event.event) {
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        console.log(`Unhandled webhook event: ${event.event}`);
+        console.log(`Unhandled webhook event: ${sanitizeForLog(event.event)}`);
     }
 
     return NextResponse.json({ received: true });
@@ -76,7 +81,7 @@ async function handleChargeSuccess(event: any) {
       .limit(1);
 
     if (!order) {
-      console.error(`Order not found for reference: ${reference}`);
+      console.error(`Order not found for reference: ${sanitizeForLog(reference)}`);
       return;
     }
 
@@ -88,7 +93,7 @@ async function handleChargeSuccess(event: any) {
       .limit(1);
 
     if (existingTransaction.length > 0) {
-      console.log(`Transaction already recorded for reference: ${reference}`);
+      console.log(`Transaction already recorded for reference: ${sanitizeForLog(reference)}`);
       return;
     }
 
@@ -114,7 +119,7 @@ async function handleChargeSuccess(event: any) {
       metadata: metadata || {},
     });
 
-    console.log(`Order ${reference} marked as paid`);
+    console.log(`Order ${sanitizeForLog(reference)} marked as paid`);
   } catch (error) {
     console.error("Error handling charge success:", error);
     throw error;
@@ -133,7 +138,7 @@ async function handleChargeFailed(event: any) {
       .limit(1);
 
     if (!order) {
-      console.error(`Order not found for reference: ${reference}`);
+      console.error(`Order not found for reference: ${sanitizeForLog(reference)}`);
       return;
     }
 
@@ -158,7 +163,7 @@ async function handleChargeFailed(event: any) {
       metadata: metadata || {},
     });
 
-    console.log(`Order ${reference} marked as failed`);
+    console.log(`Order ${sanitizeForLog(reference)} marked as failed`);
   } catch (error) {
     console.error("Error handling charge failed:", error);
     throw error;

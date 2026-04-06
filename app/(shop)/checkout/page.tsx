@@ -58,9 +58,20 @@ export default function CheckoutPage() {
 
       if (response.ok) {
         const { authorizationUrl } = await response.json();
-        // Clear cart and redirect to payment
-        clearCart();
-        window.location.href = authorizationUrl;
+        
+        // Validate the authorization URL before redirecting
+        try {
+          const url = new URL(authorizationUrl);
+          // Only allow Paystack domains
+          if (url.hostname === 'checkout.paystack.com' || url.hostname.endsWith('.paystack.co')) {
+            clearCart();
+            window.location.href = authorizationUrl;
+          } else {
+            toast.error("Invalid payment URL received");
+          }
+        } catch {
+          toast.error("Invalid payment URL format");
+        }
       } else {
         toast.error("Failed to initialize payment");
       }

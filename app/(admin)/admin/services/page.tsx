@@ -159,10 +159,19 @@ export default function ServicesPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Service Categories</h2>
-          <Badge variant="outline" className="gap-1">
-            <Layers className="h-3 w-3" />
-            Click to manage services
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => router.push("/admin/services/new")}
+              className="gap-2"
+            >
+              <Layers className="h-4 w-4" />
+              Add New Category
+            </Button>
+            <Badge variant="outline" className="gap-1">
+              <Layers className="h-3 w-3" />
+              Click to manage services
+            </Badge>
+          </div>
         </div>
 
         {categories.length === 0 ? (
@@ -182,7 +191,7 @@ export default function ServicesPage() {
               return (
                 <Card
                   key={category.id}
-                  className="hover:shadow-lg transition-all duration-200 cursor-pointer group border-2"
+                  className="hover:shadow-lg transition-all duration-200 cursor-pointer group border-2 hover:border-accent/50"
                   onClick={() => router.push(`/admin/services/category/${category.id}`)}
                 >
                   <CardHeader>

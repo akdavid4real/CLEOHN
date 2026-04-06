@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { serviceItems, servicePackages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 
 export async function GET(
   request: NextRequest,
@@ -58,6 +59,54 @@ export async function GET(
     console.error("Error fetching service items:", error);
     return NextResponse.json(
       { error: "Failed to fetch service items" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const session = await getSession();
+
+    if (!session || session.user.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { title, description, icon, cost, delivery, order } = body;
+
+    if (!title || !description) {
+      return NextResponse.json(
+        { error: "Title and description are required" },
+        { status: 400 }
+      );
+    }
+
+    const serviceItemId = nanoid();
+
+    await db.insert(serviceItems).values({
+      id: serviceItemId,
+      serviceId: id,
+      title,
+      description,
+      icon: icon || "FileText",
+      cost: cost || null,
+      delivery: delivery || null,
+      order: order || 0,
+    });
+
+    return NextResponse.json(
+      { id: serviceItemId, message: "Service item created successfully" },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Error creating service item:", error);
+    return NextResponse.json(
+      { error: "Failed to create service item" },
       { status: 500 }
     );
   }

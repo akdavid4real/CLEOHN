@@ -191,10 +191,19 @@ export default function CategoryDetailPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Service Items</h2>
-          <Badge variant="outline" className="gap-1">
-            <Package className="h-3 w-3" />
-            Click to manage packages
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => router.push(`/admin/services/category/${categoryId}/new-item`)}
+              className="gap-2"
+            >
+              <Package className="h-4 w-4" />
+              Add New Service Item
+            </Button>
+            <Badge variant="outline" className="gap-1">
+              <Package className="h-3 w-3" />
+              Click to manage packages
+            </Badge>
+          </div>
         </div>
 
         {serviceItems.length === 0 ? (
@@ -214,7 +223,7 @@ export default function CategoryDetailPage() {
               return (
                 <Card
                   key={item.id}
-                  className="hover:shadow-lg transition-all duration-200 cursor-pointer group border-2"
+                  className="hover:shadow-lg transition-all duration-200 cursor-pointer group border-2 hover:border-accent/50"
                   onClick={() => router.push(`/admin/services/item/${item.id}`)}
                 >
                   <CardHeader>

@@ -10,7 +10,16 @@ export function verifyWebhookSignature(
     .update(payload)
     .digest("hex");
 
-  return hash === signature;
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(hash, "hex"),
+      Buffer.from(signature, "hex")
+    );
+  } catch {
+    // If buffers have different lengths, timingSafeEqual throws
+    return false;
+  }
 }
 
 export interface PaystackWebhookEvent {

@@ -226,7 +226,7 @@ export default function ServiceItemDetailPage() {
           variant="ghost"
           size="sm"
           onClick={() => router.push("/admin/services")}
-          className="hover:text-accent"
+          className="hover:text-accent cursor-pointer"
         >
           Categories
         </Button>
@@ -235,7 +235,7 @@ export default function ServiceItemDetailPage() {
           variant="ghost"
           size="sm"
           onClick={() => router.push(`/admin/services/category/${item?.serviceId}`)}
-          className="hover:text-accent"
+          className="hover:text-accent cursor-pointer"
         >
           {item?.category?.name}
         </Button>
@@ -723,7 +723,7 @@ export default function ServiceItemDetailPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => router.push(`/admin/packages/${pkg.id}/edit`)}
-                      className="gap-2"
+                      className="gap-2 cursor-pointer hover:bg-accent/10 hover:border-accent"
                     >
                       <Edit className="h-4 w-4" />
                       Edit

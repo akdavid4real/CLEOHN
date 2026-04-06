@@ -123,4 +123,28 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Ensure all interactive elements have proper cursor */
+  button, 
+  [role="button"], 
+  .cursor-pointer,
+  [data-clickable="true"],
+  .clickable {
+    cursor: pointer;
+  }
+  
+  /* Card hover states */
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-lg hover:border-accent/50;
+    cursor: pointer;
+  }
+  
+  /* Button hover improvements */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  
+  button:disabled {
+    cursor: not-allowed;
+  }
 }

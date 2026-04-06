@@ -5,24 +5,48 @@ import { verifyPayment } from "@/lib/paystack/verify";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
+// Utility function to validate and sanitize redirect URLs
+function createSafeRedirectUrl(path: string, baseUrl: string, params?: Record<string, string>): string {
+  try {
+    const url = new URL(path, baseUrl);
+    // Only allow same origin redirects
+    if (url.origin !== new URL(baseUrl).origin) {
+      throw new Error('Invalid redirect origin');
+    }
+    
+    // Add query parameters if provided
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        // Sanitize parameter values
+        const sanitizedValue = encodeURIComponent(value.replace(/[<>"'&]/g, ''));
+        url.searchParams.set(key, sanitizedValue);
+      });
+    }
+    
+    return url.toString();
+  } catch {
+    // Fallback to safe default
+    return new URL('/checkout/cancel', baseUrl).toString();
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const reference = searchParams.get("reference");
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
 
     if (!reference) {
-      return NextResponse.redirect(
-        new URL("/checkout/cancel?error=missing_reference", request.url)
-      );
+      const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'missing_reference' });
+      return NextResponse.redirect(cancelUrl);
     }
 
     // Verify payment with Paystack
     const verificationResponse = await verifyPayment(reference);
 
     if (!verificationResponse.status) {
-      return NextResponse.redirect(
-        new URL("/checkout/cancel?error=verification_failed", request.url)
-      );
+      const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'verification_failed' });
+      return NextResponse.redirect(cancelUrl);
     }
 
     const paymentData = verificationResponse.data;
@@ -35,9 +59,8 @@ export async function GET(request: NextRequest) {
       .limit(1);
 
     if (!order) {
-      return NextResponse.redirect(
-        new URL("/checkout/cancel?error=order_not_found", request.url)
-      );
+      const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'order_not_found' });
+      return NextResponse.redirect(cancelUrl);
     }
 
     // Check if payment was successful
@@ -65,9 +88,8 @@ export async function GET(request: NextRequest) {
       });
 
       // Redirect to success page
-      return NextResponse.redirect(
-        new URL(`/checkout/success?order=${order.orderNumber}`, request.url)
-      );
+      const successUrl = createSafeRedirectUrl('/checkout/success', baseUrl, { order: order.orderNumber });
+      return NextResponse.redirect(successUrl);
     } else {
       // Payment failed or abandoned
       await db
@@ -90,14 +112,13 @@ export async function GET(request: NextRequest) {
         metadata: paymentData.metadata,
       });
 
-      return NextResponse.redirect(
-        new URL("/checkout/cancel?error=payment_failed", request.url)
-      );
+      const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'payment_failed' });
+      return NextResponse.redirect(cancelUrl);
     }
   } catch (error) {
     console.error("Payment verification error:", error);
-    return NextResponse.redirect(
-      new URL("/checkout/cancel?error=verification_error", request.url)
-    );
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'verification_error' });
+    return NextResponse.redirect(cancelUrl);
   }
 }
