@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, ShoppingCart, TrendingUp, Users, Star, Clock, Eye } from "lucide-react";
+import { Package, ShoppingCart, TrendingUp, Users, Star, Clock, Eye, RefreshCw } from "lucide-react";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
@@ -33,14 +33,14 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async (showRefreshing = false) => {
+    if (showRefreshing) setIsRefreshing(true);
     try {
-      const response = await fetch("/api/admin/stats");
+      const response = await fetch("/api/admin/stats", {
+        cache: 'no-store',
+      });
       if (response.ok) {
         const data = await response.json();
         setStats(data.stats);
@@ -50,8 +50,13 @@ export default function AdminDashboard() {
       console.error("Failed to fetch stats:", error);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-NG", {
@@ -103,11 +108,22 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome to the CLEOHN admin dashboard
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Welcome to the CLEOHN admin dashboard
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fetchStats(true)}
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

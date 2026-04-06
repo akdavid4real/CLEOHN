@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, Search, Edit, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import { DeleteConfirmModal } from "@/components/admin/delete-confirm-modal";
 
 interface Product {
   id: string;
@@ -35,6 +36,11 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; product: Product | null }>({ 
+    open: false, 
+    product: null 
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -43,7 +49,9 @@ export default function AdminProductsPage() {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/products");
+      const response = await fetch("/api/admin/products", {
+        cache: 'no-store',
+      });
       if (response.ok) {
         const data = await response.json();
         setProducts(data.products || []);
@@ -56,24 +64,34 @@ export default function AdminProductsPage() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) {
-      return;
-    }
+  const handleDelete = async () => {
+    if (!deleteModal.product) return;
+
+    const { id, name } = deleteModal.product;
+    setIsDeleting(true);
+
+    // Optimistically update UI
+    const previousProducts = products;
+    setProducts(prev => prev.filter(p => p.id !== id));
+    setDeleteModal({ open: false, product: null });
+    toast.success("Product deleted");
 
     try {
       const response = await fetch(`/api/admin/products/${id}`, {
         method: "DELETE",
       });
 
-      if (response.ok) {
-        toast.success("Product deleted");
-        fetchProducts();
-      } else {
+      if (!response.ok) {
+        // Revert on error
+        setProducts(previousProducts);
         toast.error("Failed to delete product");
       }
     } catch (error) {
+      // Revert on error
+      setProducts(previousProducts);
       toast.error("An error occurred");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -214,7 +232,7 @@ export default function AdminProductsPage() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleDelete(product.id, product.name)}
+                            onClick={() => setDeleteModal({ open: true, product })}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -228,6 +246,15 @@ export default function AdminProductsPage() {
           )}
         </CardContent>
       </Card>
+
+      <DeleteConfirmModal
+        open={deleteModal.open}
+        onOpenChange={(open) => setDeleteModal({ open, product: null })}
+        onConfirm={handleDelete}
+        title="Delete Product"
+        description={`Are you sure you want to delete "${deleteModal.product?.name}"? This action cannot be undone.`}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

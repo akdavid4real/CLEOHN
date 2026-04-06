@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { DeleteConfirmModal } from "@/components/admin/delete-confirm-modal";
 
 interface Category {
   id: string;
@@ -48,6 +49,11 @@ export default function EditProductPage() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; imageId: string | null }>({ 
+    open: false, 
+    imageId: null 
+  });
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -173,7 +179,6 @@ export default function EditProductPage() {
           console.log('[Client] Image added successfully:', newImage);
           setProductImages(prev => [...prev, newImage]);
           toast.success('Image uploaded successfully');
-          await fetchProduct();
         } else {
           const errorData = await addImageResponse.json();
           console.error('[Client] Failed to add image:', errorData);
@@ -193,42 +198,73 @@ export default function EditProductPage() {
     }
   };
 
-  const handleDeleteImage = async (imageId: string) => {
-    if (!confirm('Are you sure you want to delete this image?')) return;
+  const handleDeleteImage = async () => {
+    if (!deleteModal.imageId) return;
 
+    const imageId = deleteModal.imageId;
+    console.log('[Client] Deleting image:', imageId);
+    
+    setIsDeletingImage(true);
+    
+    // Optimistically update UI
+    const previousImages = productImages;
+    setProductImages(prev => prev.filter(img => img.id !== imageId));
+    setDeleteModal({ open: false, imageId: null });
+    toast.success('Image deleted successfully');
+    
     try {
       const response = await fetch(`/api/admin/products/${productId}/images/${imageId}`, {
         method: 'DELETE',
       });
 
-      if (response.ok) {
-        setProductImages(prev => prev.filter(img => img.id !== imageId));
-        toast.success('Image deleted successfully');
-        await fetchProduct();
-      } else {
+      console.log('[Client] Delete response status:', response.status);
+
+      if (!response.ok) {
+        // Revert on error
+        setProductImages(previousImages);
+        const error = await response.json();
+        console.error('[Client] Delete failed:', error);
         toast.error('Failed to delete image');
       }
     } catch (error) {
+      // Revert on error
+      setProductImages(previousImages);
+      console.error('[Client] Delete error:', error);
       toast.error('Failed to delete image');
+    } finally {
+      setIsDeletingImage(false);
     }
   };
 
   const handleSetPrimaryImage = async (imageId: string) => {
+    console.log('[Client] Setting primary image:', imageId);
+    
+    // Optimistically update UI
+    const previousImages = productImages;
+    setProductImages(prev => 
+      prev.map(img => ({ ...img, isPrimary: img.id === imageId }))
+    );
+    
     try {
       const response = await fetch(`/api/admin/products/${productId}/images/${imageId}/primary`, {
         method: 'PATCH',
       });
 
+      console.log('[Client] Set primary response status:', response.status);
+
       if (response.ok) {
-        setProductImages(prev => 
-          prev.map(img => ({ ...img, isPrimary: img.id === imageId }))
-        );
         toast.success('Primary image updated');
-        await fetchProduct();
       } else {
+        // Revert on error
+        setProductImages(previousImages);
+        const error = await response.json();
+        console.error('[Client] Set primary failed:', error);
         toast.error('Failed to update primary image');
       }
     } catch (error) {
+      // Revert on error
+      setProductImages(previousImages);
+      console.error('[Client] Set primary error:', error);
       toast.error('Failed to update primary image');
     }
   };
@@ -256,7 +292,6 @@ export default function EditProductPage() {
       if (response.ok) {
         toast.success("Product updated successfully");
         router.push("/admin/products");
-        router.refresh();
       } else {
         const data = await response.json();
         toast.error(data.error || "Failed to update product");
@@ -511,7 +546,7 @@ export default function EditProductPage() {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleDeleteImage(image.id)}
+                        onClick={() => setDeleteModal({ open: true, imageId: image.id })}
                         className="h-8 w-8 p-0"
                       >
                         <X className="h-4 w-4" />
@@ -544,6 +579,15 @@ export default function EditProductPage() {
           </div>
         </CardContent>
       </Card>
+
+      <DeleteConfirmModal
+        open={deleteModal.open}
+        onOpenChange={(open) => setDeleteModal({ open, imageId: null })}
+        onConfirm={handleDeleteImage}
+        title="Delete Image"
+        description="Are you sure you want to delete this image? This action cannot be undone."
+        isDeleting={isDeletingImage}
+      />
     </div>
   );
 }
