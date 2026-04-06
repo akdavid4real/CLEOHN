@@ -4,18 +4,14 @@ import path from "path";
 // Load environment variables FIRST
 config({ path: path.join(process.cwd(), ".env.local") });
 
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import { services, serviceItems, servicePackages, packageFeatures } from "@/lib/db/schema";
 import { nanoid } from "nanoid";
 
 // Create database connection
-const client = createClient({
-  url: process.env.DATABASE_URL!,
-  authToken: process.env.DATABASE_AUTH_TOKEN,
-});
-
-const db = drizzle(client);
+const sql = neon(process.env.DATABASE_URL!);
+const db = drizzle(sql);
 
 // Exact data from frontend services page
 const frontendServicesData = [

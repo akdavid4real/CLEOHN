@@ -5,11 +5,12 @@ import path from "path";
 config({ path: path.join(process.cwd(), ".env.local") });
 
 // Now import modules that depend on environment
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import { users } from "@/lib/db/schema";
 import { hash } from "@node-rs/argon2";
 import { nanoid } from "nanoid";
+import { eq } from "drizzle-orm";
 
 async function main() {
   try {
@@ -19,19 +20,14 @@ async function main() {
     const adminPassword = process.argv[3] || "Admin123!";
 
     const dbUrl = process.env.DATABASE_URL;
-    const dbToken = process.env.DATABASE_AUTH_TOKEN;
 
     if (!dbUrl) {
       throw new Error("DATABASE_URL environment variable is not set");
     }
 
     // Create database connection
-    const client = createClient({
-      url: dbUrl,
-      authToken: dbToken,
-    });
-
-    const db = drizzle(client);
+    const sql = neon(dbUrl);
+    const db = drizzle(sql);
 
     const hashedPassword = await hash(adminPassword);
     const adminId = nanoid();
@@ -40,10 +36,10 @@ async function main() {
     const existingAdmin = await db
       .select()
       .from(users)
-      .where((u: any) => u.email === adminEmail)
-      .get();
+      .where(eq(users.email, adminEmail))
+      .limit(1);
 
-    if (existingAdmin) {
+    if (existingAdmin.length > 0) {
       console.log(`✅ Admin user ${adminEmail} already exists`);
       process.exit(0);
     }
