@@ -44,10 +44,17 @@ export async function PATCH(
 
     await updateProduct(id, validated);
 
-    return Response.json({
-      id,
-      message: "Product updated successfully",
-    });
+    return Response.json(
+      {
+        id,
+        message: "Product updated successfully",
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, must-revalidate',
+        },
+      }
+    );
   } catch (error) {
     return Response.json(
       { error: "Invalid input or product not found" },

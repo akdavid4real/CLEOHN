@@ -107,24 +107,35 @@ export default function NewProductPage() {
 
     try {
       // Create product first
+      const productData = {
+        ...formData,
+        price: parseFloat(formData.price),
+        compareAtPrice: formData.compareAtPrice
+          ? parseFloat(formData.compareAtPrice)
+          : null,
+        stock: parseInt(formData.stock),
+        sku: formData.sku || `SKU-${Date.now()}`, // Auto-generate SKU if empty
+      };
+      
+      console.log('Sending product data:', productData); // Debug log
+      
       const productResponse = await fetch("/api/admin/products", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-          compareAtPrice: formData.compareAtPrice
-            ? parseFloat(formData.compareAtPrice)
-            : null,
-          stock: parseInt(formData.stock),
-        }),
+        body: JSON.stringify(productData),
       });
 
       if (!productResponse.ok) {
-        const data = await productResponse.json();
-        toast.error(data.error || "Failed to create product");
+        const errorData = await productResponse.json();
+        console.error('Product creation failed:', errorData);
+        
+        if (errorData.details) {
+          toast.error(`Validation failed: ${errorData.details.join(', ')}`);
+        } else {
+          toast.error(errorData.error || "Failed to create product");
+        }
         return;
       }
 
@@ -305,13 +316,14 @@ export default function NewProductPage() {
               </div>
 
               <div>
-                <Label htmlFor="sku">SKU</Label>
+                <Label htmlFor="sku">SKU (optional - will auto-generate if empty)</Label>
                 <Input
                   id="sku"
                   value={formData.sku}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, sku: e.target.value }))
                   }
+                  placeholder="e.g., PROD-001 (leave empty to auto-generate)"
                 />
               </div>
 

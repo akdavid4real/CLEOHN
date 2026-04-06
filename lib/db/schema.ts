@@ -110,7 +110,7 @@ export const products = sqliteTable("products", {
   description: text("description"),
   price: real("price").notNull(),
   compareAtPrice: real("compare_at_price"), // Original price for showing discount
-  sku: text("sku").unique().notNull(),
+  sku: text("sku").unique().notNull(), // Revert back to required
   stock: integer("stock").default(0),
   rating: real("rating").default(0),
   reviewCount: integer("review_count").default(0),

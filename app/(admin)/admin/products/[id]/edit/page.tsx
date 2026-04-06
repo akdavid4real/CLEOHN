@@ -135,17 +135,13 @@ export default function EditProductPage() {
     setIsUploadingImage(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', 'cleohn_products');
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
 
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
+      const response = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: uploadFormData,
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -157,7 +153,7 @@ export default function EditProductPage() {
           body: JSON.stringify({
             imageUrl: data.secure_url,
             altText: formData.name,
-            isPrimary: productImages.length === 0, // First image is primary
+            isPrimary: productImages.length === 0,
           }),
         });
 
@@ -165,10 +161,13 @@ export default function EditProductPage() {
           const newImage = await addImageResponse.json();
           setProductImages(prev => [...prev, newImage]);
           toast.success('Image uploaded successfully');
+          await fetchProduct();
         } else {
           toast.error('Failed to save image');
         }
       } else {
+        const error = await response.json();
+        console.error('Upload error:', error);
         toast.error('Failed to upload image');
       }
     } catch (error) {
@@ -176,6 +175,7 @@ export default function EditProductPage() {
       toast.error('Failed to upload image');
     } finally {
       setIsUploadingImage(false);
+      e.target.value = '';
     }
   };
 
@@ -190,6 +190,7 @@ export default function EditProductPage() {
       if (response.ok) {
         setProductImages(prev => prev.filter(img => img.id !== imageId));
         toast.success('Image deleted successfully');
+        await fetchProduct();
       } else {
         toast.error('Failed to delete image');
       }
@@ -209,6 +210,7 @@ export default function EditProductPage() {
           prev.map(img => ({ ...img, isPrimary: img.id === imageId }))
         );
         toast.success('Primary image updated');
+        await fetchProduct();
       } else {
         toast.error('Failed to update primary image');
       }
@@ -240,6 +242,7 @@ export default function EditProductPage() {
       if (response.ok) {
         toast.success("Product updated successfully");
         router.push("/admin/products");
+        router.refresh();
       } else {
         const data = await response.json();
         toast.error(data.error || "Failed to update product");

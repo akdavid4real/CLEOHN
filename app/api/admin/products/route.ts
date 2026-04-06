@@ -4,6 +4,7 @@ import { createProductSchema } from "@/lib/validations/product";
 import { db } from "@/lib/db/client";
 import { products, productCategories, productImages } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 export async function GET() {
   try {
@@ -63,7 +64,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    console.log('Received product data:', body); // Debug log
+    
     const validated = createProductSchema.parse(body);
+    console.log('Validated product data:', validated); // Debug log
 
     const productId = await createProduct(validated);
 
@@ -72,9 +76,21 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    console.error('Product creation error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return Response.json(
+        { 
+          error: "Validation failed", 
+          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        },
+        { status: 400 }
+      );
+    }
+    
     return Response.json(
-      { error: "Invalid input" },
-      { status: 400 }
+      { error: "Failed to create product" },
+      { status: 500 }
     );
   }
 }
