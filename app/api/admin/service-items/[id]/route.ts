@@ -60,15 +60,35 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const updateData: Record<string, any> = {};
 
-    if (body.cost !== undefined) updateData.cost = body.cost;
-    if (body.delivery !== undefined) updateData.delivery = body.delivery;
-    if (body.infoPoints !== undefined) updateData.infoPoints = body.infoPoints;
-    if (body.types !== undefined) updateData.types = body.types;
-    if (body.phases !== undefined) updateData.phases = body.phases;
-    if (body.title !== undefined) updateData.title = body.title;
-    if (body.description !== undefined) updateData.description = body.description;
+    // SECURITY: Validate input with Zod schema
+    const { updateServiceItemSchema } = await import("@/lib/validations/service");
+    const { z } = await import("zod");
+
+    let validatedData;
+    try {
+      validatedData = updateServiceItemSchema.parse(body);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          {
+            error: "Invalid input",
+            details: error.errors.map(e => e.message)
+          },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
+
+    const updateData: Record<string, any> = {};
+    if (validatedData.cost !== undefined) updateData.cost = validatedData.cost;
+    if (validatedData.delivery !== undefined) updateData.delivery = validatedData.delivery;
+    if (validatedData.infoPoints !== undefined) updateData.infoPoints = validatedData.infoPoints;
+    if (validatedData.types !== undefined) updateData.types = validatedData.types;
+    if (validatedData.phases !== undefined) updateData.phases = validatedData.phases;
+    if (validatedData.title !== undefined) updateData.title = validatedData.title;
+    if (validatedData.description !== undefined) updateData.description = validatedData.description;
 
     await db
       .update(serviceItems)

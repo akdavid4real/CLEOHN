@@ -78,33 +78,53 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const updateData: Record<string, any> = {};
 
-    if (typeof body.featured === "boolean") updateData.featured = body.featured;
-    if (typeof body.isPopular === "boolean") updateData.isPopular = body.isPopular;
-    if (typeof body.displayOrder === "number") updateData.displayOrder = body.displayOrder;
-    if (body.pricingDescription !== undefined) updateData.pricingDescription = body.pricingDescription;
-    if (body.name !== undefined) updateData.name = body.name;
-    if (typeof body.price === "number") updateData.price = body.price;
-    if (body.processingTime !== undefined) updateData.processingTime = body.processingTime;
+    // SECURITY: Validate input with Zod schema
+    const { updateServicePackageSchema } = await import("@/lib/validations/service");
+    const { z } = await import("zod");
+
+    let validatedData;
+    try {
+      validatedData = updateServicePackageSchema.parse(body);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          {
+            error: "Invalid input",
+            details: error.errors.map(e => e.message)
+          },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
+
+    const updateData: Record<string, any> = {};
+    if (validatedData.featured !== undefined) updateData.featured = validatedData.featured;
+    if (validatedData.isPopular !== undefined) updateData.isPopular = validatedData.isPopular;
+    if (validatedData.displayOrder !== undefined) updateData.displayOrder = validatedData.displayOrder;
+    if (validatedData.pricingDescription !== undefined) updateData.pricingDescription = validatedData.pricingDescription;
+    if (validatedData.name !== undefined) updateData.name = validatedData.name;
+    if (validatedData.price !== undefined) updateData.price = validatedData.price;
+    if (validatedData.processingTime !== undefined) updateData.processingTime = validatedData.processingTime;
 
     await db
       .update(servicePackages)
       .set(updateData)
       .where(eq(servicePackages.id, id));
 
-    // Handle deliverables update if provided
-    if (Array.isArray(body.features)) {
+    // Handle deliverables update if provided (already validated by Zod)
+    if (validatedData.features !== undefined) {
       // Delete existing features
       await db
         .delete(packageFeatures)
         .where(eq(packageFeatures.packageId, id));
 
       // Insert new features
-      if (body.features.length > 0) {
+      if (validatedData.features.length > 0) {
         const { nanoid } = await import("nanoid");
         await db.insert(packageFeatures).values(
-          body.features.map((feature: string, idx: number) => ({
+          validatedData.features.map((feature: string, idx: number) => ({
             id: nanoid(),
             packageId: id,
             feature,

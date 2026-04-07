@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { orders, paymentTransactions } from "@/lib/db/schema";
+import { orders, paymentTransactions, orderItems, products } from "@/lib/db/schema";
 import { verifyPayment } from "@/lib/paystack/verify";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 // Utility function to validate and sanitize redirect URLs
@@ -70,6 +70,14 @@ export async function GET(request: NextRequest) {
       .where(eq(paymentTransactions.paystackReference, reference))
       .limit(1);
 
+    // Verify payment amount matches order total (convert from kobo to naira)
+    const paidAmount = paymentData.amount / 100;
+    if (Math.abs(paidAmount - order.total) > 0.01) {
+      console.error(`Payment amount mismatch: expected ${order.total}, got ${paidAmount}`);
+      const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'amount_mismatch' });
+      return NextResponse.redirect(cancelUrl);
+    }
+
     // Check if payment was successful
     if (paymentData.status === "success") {
       // Update order status only if not already paid
@@ -77,10 +85,28 @@ export async function GET(request: NextRequest) {
         await db
           .update(orders)
           .set({
-            status: "paid",
+            status: "processing",
             paymentStatus: "paid",
           })
           .where(eq(orders.id, order.id));
+
+        // CRITICAL: Decrement stock for products in this order
+        const items = await db
+          .select()
+          .from(orderItems)
+          .where(eq(orderItems.orderId, order.id));
+
+        for (const item of items) {
+          if (item.productId) {
+            // Decrement product stock
+            await db
+              .update(products)
+              .set({
+                stock: sql`${products.stock} - ${item.quantity}`,
+              })
+              .where(eq(products.id, item.productId));
+          }
+        }
       }
 
       // Record payment transaction only if it doesn't exist

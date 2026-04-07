@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { orders, orderItems } from "@/lib/db/schema";
+import { orders, orderItems, products, servicePackages } from "@/lib/db/schema";
 import { initializePayment } from "@/lib/paystack/initialize";
 import { validateEmail, validatePhone, validateAmount, sanitizeString, sanitizeMetadata } from "@/lib/paystack/validation";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/paystack/rate-limit";
 import { nanoid } from "nanoid";
+import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,6 +64,87 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // CRITICAL: Validate prices against database to prevent price manipulation
+    let calculatedTotal = 0;
+    const validatedItems = [];
+
+    for (const item of items) {
+      let actualPrice = 0;
+
+      if (item.productId) {
+        // Validate product price and stock
+        const [product] = await db
+          .select()
+          .from(products)
+          .where(eq(products.id, item.productId))
+          .limit(1);
+
+        if (!product || !product.isActive) {
+          return NextResponse.json(
+            { error: `Product not found or unavailable: ${item.productName}` },
+            { status: 400 }
+          );
+        }
+
+        // CRITICAL: Validate stock availability
+        if (product.stock < item.quantity) {
+          return NextResponse.json(
+            {
+              error: `Insufficient stock for ${item.productName}. Available: ${product.stock}, Requested: ${item.quantity}`
+            },
+            { status: 400 }
+          );
+        }
+
+        actualPrice = product.price;
+      } else if (item.packageId) {
+        // Validate package price
+        const [pkg] = await db
+          .select()
+          .from(servicePackages)
+          .where(eq(servicePackages.id, item.packageId))
+          .limit(1);
+
+        if (!pkg) {
+          return NextResponse.json(
+            { error: `Package not found: ${item.productName}` },
+            { status: 400 }
+          );
+        }
+
+        actualPrice = pkg.price;
+      } else {
+        return NextResponse.json(
+          { error: "Invalid item: must have productId or packageId" },
+          { status: 400 }
+        );
+      }
+
+      // Validate quantity
+      if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 100) {
+        return NextResponse.json(
+          { error: "Invalid quantity" },
+          { status: 400 }
+        );
+      }
+
+      calculatedTotal += actualPrice * item.quantity;
+
+      validatedItems.push({
+        ...item,
+        pricePerUnit: actualPrice, // Use server-validated price
+      });
+    }
+
+    // Verify the client's total matches the server-calculated total
+    if (Math.abs(total - calculatedTotal) > 0.01) {
+      console.error(`Price manipulation detected: client sent ${total}, server calculated ${calculatedTotal}`);
+      return NextResponse.json(
+        { error: "Price mismatch. Please refresh and try again." },
+        { status: 400 }
+      );
+    }
+
     // Sanitize customer data
     const sanitizedCustomer = {
       name: sanitizeString(customer.name, 100),
@@ -95,16 +177,15 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    // Create order items
-    const orderItemsData = items.map((item: any) => ({
+    // Create order items using validated data
+    const orderItemsData = validatedItems.map((item: any) => ({
       id: nanoid(),
       orderId: order.id,
       productId: item.productId || null,
       packageId: item.packageId || null,
       productName: item.productName,
       quantity: item.quantity,
-      pricePerUnit: item.pricePerUnit,
-      subtotal: item.quantity * item.pricePerUnit,
+      pricePerUnit: item.pricePerUnit, // Server-validated price
     }));
 
     await db.insert(orderItems).values(orderItemsData);

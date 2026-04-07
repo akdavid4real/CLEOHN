@@ -16,6 +16,11 @@ export async function GET(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
+    // SECURITY: Only show active products to customers
+    if (!product.isActive) {
+      return NextResponse.json({ error: "Product not available" }, { status: 404 });
+    }
+
     // Get product with images and variants
     const productDetails = await getProductWithDetails(product.id);
 

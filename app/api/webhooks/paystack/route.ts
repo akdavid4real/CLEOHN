@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { orders, paymentTransactions } from "@/lib/db/schema";
+import { orders, paymentTransactions, orderItems, products } from "@/lib/db/schema";
 import {
   verifyWebhookSignature,
   parseWebhookEvent,
 } from "@/lib/paystack/webhook";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 // Utility function to sanitize log inputs
@@ -97,11 +97,18 @@ async function handleChargeSuccess(event: any) {
       return;
     }
 
-    // Update order status
+    // Verify payment amount matches order total
+    const paidAmount = amount / 100;
+    if (Math.abs(paidAmount - order.total) > 0.01) {
+      console.error(`Payment amount mismatch for ${sanitizeForLog(reference)}: expected ${order.total}, got ${paidAmount}`);
+      return;
+    }
+
+    // Update order status - set to processing after successful payment
     await db
       .update(orders)
       .set({
-        status: "paid",
+        status: "processing",
         paymentStatus: "paid",
       })
       .where(eq(orders.id, order.id));
@@ -119,7 +126,25 @@ async function handleChargeSuccess(event: any) {
       metadata: JSON.stringify(metadata || {}),
     });
 
-    console.log(`Order ${sanitizeForLog(reference)} marked as paid`);
+    // CRITICAL: Decrement stock for products in this order
+    const items = await db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id));
+
+    for (const item of items) {
+      if (item.productId) {
+        // Decrement product stock
+        await db
+          .update(products)
+          .set({
+            stock: sql`${products.stock} - ${item.quantity}`,
+          })
+          .where(eq(products.id, item.productId));
+      }
+    }
+
+    console.log(`Order ${sanitizeForLog(reference)} marked as paid and stock updated`);
   } catch (error) {
     console.error("Error handling charge success:", error);
     throw error;
@@ -130,6 +155,18 @@ async function handleChargeFailed(event: any) {
   const { reference, amount, channel, currency, metadata } = event.data;
 
   try {
+    // Check if transaction already exists to prevent duplicates
+    const [existingTransaction] = await db
+      .select()
+      .from(paymentTransactions)
+      .where(eq(paymentTransactions.paystackReference, reference))
+      .limit(1);
+
+    if (existingTransaction) {
+      console.log(`Failed transaction already recorded for reference: ${sanitizeForLog(reference)}`);
+      return;
+    }
+
     // Find order by reference
     const [order] = await db
       .select()

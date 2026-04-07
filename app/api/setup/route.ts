@@ -6,12 +6,27 @@ import { eq } from 'drizzle-orm'
 
 export async function POST(request: Request) {
   try {
+    // SECURITY: Disable in production - use proper deployment process instead
+    if (process.env.NODE_ENV === "production") {
+      return Response.json(
+        { error: "Setup endpoint disabled in production. Use proper deployment process." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json()
     const { setupKey, email, password } = body
 
-    // Security: Require a setup key from environment
-    const expectedKey = process.env.SETUP_KEY || 'cleohn-setup-2026'
-    
+    // Security: Require a strong setup key from environment (NO DEFAULT)
+    const expectedKey = process.env.SETUP_KEY;
+
+    if (!expectedKey || expectedKey.length < 32) {
+      return Response.json(
+        { error: 'SETUP_KEY environment variable not configured or too weak (minimum 32 characters)' },
+        { status: 500 }
+      );
+    }
+
     if (setupKey !== expectedKey) {
       return Response.json(
         { error: 'Invalid setup key' },

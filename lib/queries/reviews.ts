@@ -10,15 +10,16 @@ export async function getProductReviews(productId: string) {
       customerName: productReviews.customerName,
       customerEmail: productReviews.customerEmail,
       rating: productReviews.rating,
-      reviewText: productReviews.reviewText,
-      status: productReviews.status,
+      content: productReviews.content, // Fixed: use content not reviewText
+      title: productReviews.title,
+      approved: productReviews.approved, // Fixed: use approved not status
       createdAt: productReviews.createdAt,
     })
     .from(productReviews)
     .where(
       and(
         eq(productReviews.productId, productId),
-        eq(productReviews.status, "approved")
+        eq(productReviews.approved, true) // Fixed: use approved boolean not status string
       )
     )
     .orderBy(desc(productReviews.createdAt));
@@ -33,7 +34,7 @@ export async function getProductAverageRating(productId: string) {
     .where(
       and(
         eq(productReviews.productId, productId),
-        eq(productReviews.status, "approved")
+        eq(productReviews.approved, true) // Fixed: use approved boolean not status
       )
     );
 
@@ -59,8 +60,9 @@ export async function getAllReviews() {
       customerName: productReviews.customerName,
       customerEmail: productReviews.customerEmail,
       rating: productReviews.rating,
-      reviewText: productReviews.reviewText,
-      status: productReviews.status,
+      content: productReviews.content, // Fixed: use content not reviewText
+      title: productReviews.title,
+      approved: productReviews.approved, // Fixed: use approved not status
       createdAt: productReviews.createdAt,
     })
     .from(productReviews)
@@ -77,12 +79,13 @@ export async function getPendingReviews() {
       customerName: productReviews.customerName,
       customerEmail: productReviews.customerEmail,
       rating: productReviews.rating,
-      reviewText: productReviews.reviewText,
-      status: productReviews.status,
+      content: productReviews.content, // Fixed: use content not reviewText
+      title: productReviews.title,
+      approved: productReviews.approved, // Fixed: use approved not status
       createdAt: productReviews.createdAt,
     })
     .from(productReviews)
     .leftJoin(products, eq(productReviews.productId, products.id))
-    .where(eq(productReviews.status, "pending"))
+    .where(eq(productReviews.approved, false)) // Fixed: use approved boolean not status
     .orderBy(desc(productReviews.createdAt));
 }

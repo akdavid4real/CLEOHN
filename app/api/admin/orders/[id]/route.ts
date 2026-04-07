@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { orders, orderItems, paymentTransactions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { updateOrderStatusSchema } from "@/lib/validations/order";
+import { z } from "zod";
 
 export async function GET(
   request: NextRequest,
@@ -68,19 +70,28 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { status } = body;
 
-    if (!status) {
-      return NextResponse.json(
-        { error: "Status is required" },
-        { status: 400 }
-      );
+    // Validate status against allowed values
+    let validatedData;
+    try {
+      validatedData = updateOrderStatusSchema.parse(body);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          {
+            error: "Invalid status",
+            details: error.errors.map(e => e.message)
+          },
+          { status: 400 }
+        );
+      }
+      throw error;
     }
 
-    // Update order status
+    // Update order status with validated value
     await db
       .update(orders)
-      .set({ status })
+      .set({ status: validatedData.status })
       .where(eq(orders.id, id));
 
     return NextResponse.json({ success: true });

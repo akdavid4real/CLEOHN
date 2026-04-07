@@ -23,8 +23,9 @@ export const reviewSchema = z.object({
 
 export type ReviewInput = z.infer<typeof reviewSchema>;
 
+// Fixed: Schema uses boolean 'approved' field, not 'status' enum
 export const reviewModerationSchema = z.object({
-  status: z.enum(["pending", "approved", "rejected"]),
+  approved: z.boolean(),
 });
 
 export type ReviewModerationInput = z.infer<typeof reviewModerationSchema>;

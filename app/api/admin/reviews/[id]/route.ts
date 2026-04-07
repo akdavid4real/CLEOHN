@@ -20,11 +20,11 @@ export async function PATCH(
     const body = await request.json();
     const validatedData = reviewModerationSchema.parse(body);
 
-    // Update review status
+    // Update review approval status
     await db
       .update(productReviews)
       .set({
-        status: validatedData.status,
+        approved: validatedData.approved,
       })
       .where(eq(productReviews.id, id));
 

@@ -18,14 +18,28 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { imageUrl, isPrimary, order } = body;
 
-    if (!imageUrl) {
-      return NextResponse.json(
-        { error: "Image URL is required" },
-        { status: 400 }
-      );
+    // SECURITY: Validate image URL and input with Zod
+    const { productImageSchema } = await import("@/lib/validations/service");
+    const { z } = await import("zod");
+
+    let validatedData;
+    try {
+      validatedData = productImageSchema.parse(body);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          {
+            error: "Invalid input",
+            details: error.errors.map(e => e.message)
+          },
+          { status: 400 }
+        );
+      }
+      throw error;
     }
+
+    const { imageUrl, isPrimary, order, altText } = validatedData;
 
     // If this is set as primary, unset other primary images
     if (isPrimary) {
@@ -35,14 +49,14 @@ export async function POST(
         .where(eq(productImages.productId, id));
     }
 
-    // Insert new image
+    // Insert new image (using validated data)
     const [newImage] = await db.insert(productImages).values({
       id: nanoid(),
       productId: id,
       imageUrl,
-      altText: body.altText || null,
-      isPrimary: isPrimary || false,
-      order: order || 0,
+      altText: altText || null,
+      isPrimary: isPrimary,
+      order: order,
     }).returning();
 
     return NextResponse.json(newImage, { status: 201 });

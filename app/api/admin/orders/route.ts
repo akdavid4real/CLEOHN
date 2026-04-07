@@ -24,10 +24,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Search by order number or customer name/email
+    // SECURITY: Sanitize search input to prevent SQL injection
     if (search) {
-      query = query.where(
-        like(orders.orderNumber, `%${search}%`)
-      ) as any;
+      // Remove SQL wildcards and special characters that could be used for injection
+      const sanitizedSearch = search
+        .replace(/[%_\\]/g, '\\$&') // Escape SQL LIKE wildcards
+        .replace(/[^\w\s@.-]/g, ''); // Only allow alphanumeric, spaces, @, ., -
+
+      if (sanitizedSearch.length > 0) {
+        query = query.where(
+          like(orders.orderNumber, `%${sanitizedSearch}%`)
+        ) as any;
+      }
     }
 
     const orderList = await query.orderBy(desc(orders.createdAt));

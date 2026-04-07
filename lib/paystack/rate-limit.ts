@@ -1,4 +1,14 @@
 // Simple in-memory rate limiter for payment endpoints
+// WARNING: This rate limiter has the following limitations:
+// 1. State is reset on server restart
+// 2. Does not work across multiple server instances (load balancing)
+// 3. For production with multiple instances, consider using Redis or a distributed cache
+//
+// Production alternatives:
+// - Redis with @upstash/redis and @upstash/ratelimit
+// - Vercel KV for serverless deployments
+// - Database-backed rate limiting for persistent state
+
 interface RateLimitEntry {
   count: number;
   resetTime: number;

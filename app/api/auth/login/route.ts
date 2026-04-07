@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { verify } from "@node-rs/argon2";
 import { cookies } from "next/headers";
 import { nanoid } from "nanoid";
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/paystack/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +17,19 @@ export async function POST(request: Request) {
       return Response.json(
         { error: "Email and password are required" },
         { status: 400 }
+      );
+    }
+
+    // SECURITY: Rate limit login attempts - 5 attempts per 15 minutes per email
+    const rateLimitResult = checkRateLimit(`login:${email}`, 5, 900000); // 15 minutes
+
+    if (!rateLimitResult.allowed) {
+      return Response.json(
+        { error: "Too many login attempts. Please try again in 15 minutes." },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult)
+        }
       );
     }
 
@@ -71,13 +85,13 @@ export async function POST(request: Request) {
       expiresAt: Math.floor(expiresAt.getTime() / 1000),
     });
 
-    // Set cookie
+    // Set cookie with security flags
     const cookieStore = await cookies();
     cookieStore.set("sessionId", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60,
+      httpOnly: true, // Prevents XSS attacks from accessing cookie
+      secure: process.env.NODE_ENV === "production", // HTTPS only in production
+      sameSite: "strict", // CSRF protection - changed from lax to strict for admin sessions
+      maxAge: 30 * 24 * 60 * 60, // 30 days
       path: "/",
     });
 

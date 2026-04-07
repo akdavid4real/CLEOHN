@@ -59,7 +59,17 @@ export async function POST(request: Request) {
   try {
     const { action, secret } = await request.json();
 
-    if (secret !== process.env.SESSION_SECRET) {
+    // SECURITY: Use dedicated setup secret, not session secret
+    const setupSecret = process.env.PRODUCTION_SETUP_SECRET;
+
+    if (!setupSecret || setupSecret.length < 32) {
+      return NextResponse.json(
+        { error: "PRODUCTION_SETUP_SECRET not configured or too weak (minimum 32 characters)" },
+        { status: 500 }
+      );
+    }
+
+    if (secret !== setupSecret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
