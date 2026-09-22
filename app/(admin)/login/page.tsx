@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,9 +16,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     setIsLoading(true);
 
     try {
@@ -33,12 +36,16 @@ export default function LoginPage() {
         toast.success("Logged in successfully");
         window.location.href = "/admin";
       } else {
-        const data = await response.json();
-        toast.error(data.error || "Invalid email or password");
+        const data = await response.json().catch(() => ({}));
+        const message = data.error || "Invalid email or password";
+        setErrorMessage(message);
+        toast.error(message);
         setIsLoading(false);
       }
     } catch (error) {
-      toast.error("An error occurred. Please try again.");
+      const message = "Unable to sign in right now. Please try again.";
+      setErrorMessage(message);
+      toast.error(message);
       setIsLoading(false);
     }
   };
@@ -52,6 +59,12 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errorMessage ? (
+              <Alert variant="destructive">
+                <AlertTitle>Sign-in failed</AlertTitle>
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            ) : null}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -62,6 +75,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                aria-invalid={Boolean(errorMessage)}
               />
             </div>
             <div className="space-y-2">
@@ -76,6 +90,7 @@ export default function LoginPage() {
                   required
                   autoComplete="current-password"
                   className="pr-10"
+                  aria-invalid={Boolean(errorMessage)}
                 />
                 <button
                   type="button"
@@ -95,13 +110,6 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          
-          {/* Dev Helper */}
-          <div className="mt-4 p-3 bg-muted rounded-lg text-xs text-muted-foreground">
-            <p className="font-semibold mb-1">Default Credentials:</p>
-            <p>Email: admin@cleohn.com</p>
-            <p>Password: Admin123!</p>
-          </div>
         </CardContent>
       </Card>
     </div>

@@ -2,18 +2,19 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, BadgeCheck, Loader2, PhoneCall, ShieldCheck, Sparkles } from "lucide-react";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import Link from "next/link";
+import { useCart } from "@/hooks/use-cart";
 
 function SuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderNumber = searchParams.get("order");
-  const [countdown, setCountdown] = useState(10);
+  const { clearCart } = useCart();
+  const [countdown, setCountdown] = useState(25);
 
   useEffect(() => {
     if (!orderNumber) {
@@ -21,12 +22,13 @@ function SuccessPageContent() {
       return;
     }
 
-    // Countdown redirect to shop
+    clearCart();
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.push("/shop");
+          router.push("/services");
           return 0;
         }
         return prev - 1;
@@ -34,80 +36,98 @@ function SuccessPageContent() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [orderNumber, router]);
+  }, [clearCart, orderNumber, router]);
 
   if (!orderNumber) {
     return null;
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-background to-secondary/40">
       <Nav />
 
-      <main className="flex-1 container mx-auto px-4 py-16 flex items-center justify-center">
-        <Card className="max-w-2xl w-full">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 className="h-10 w-10 text-green-600" />
-            </div>
-            <CardTitle className="text-3xl">Payment Successful!</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-center space-y-2">
-              <p className="text-muted-foreground">
-                Thank you for your order. Your payment has been processed successfully.
+      <main className="flex-1">
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary font-medium">
+                <Sparkles className="h-4 w-4" />
+                Payment Confirmed
+              </div>
+
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                Your Order Is In
+                <span className="block text-primary">Safe Hands</span>
+              </h1>
+
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Thank you for choosing CLEOHN Group Ltd. We have received your payment and our team is now
+                processing your request.
               </p>
-              <div className="bg-muted p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Order Number</p>
-                <p className="text-2xl font-bold font-mono">{orderNumber}</p>
+
+              <div className="mx-auto max-w-xl rounded-2xl border bg-card p-6 shadow-sm">
+                <p className="text-sm text-muted-foreground uppercase tracking-wide">Order Number</p>
+                <p className="text-2xl sm:text-3xl font-bold font-mono mt-2">{orderNumber}</p>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 mb-2">What's Next?</h3>
-                <ul className="space-y-1 text-sm text-blue-800">
-                  <li>• You will receive an order confirmation email shortly</li>
-                  <li>• Our team will contact you to confirm your order details</li>
-                  <li>• We'll process your order and keep you updated</li>
-                </ul>
+            <div className="mt-10 grid md:grid-cols-3 gap-4">
+              <div className="rounded-2xl border bg-card p-5">
+                <BadgeCheck className="h-5 w-5 text-primary mb-3" />
+                <h3 className="font-semibold mb-1">Payment Verified</h3>
+                <p className="text-sm text-muted-foreground">Your transaction has been completed successfully.</p>
               </div>
-
-              <div className="bg-muted p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground text-center">
-                  For any questions, contact us at{" "}
-                  <a
-                    href="mailto:Cleohngroupltd@gmail.com"
-                    className="text-primary hover:underline"
-                  >
-                    Cleohngroupltd@gmail.com
-                  </a>
-                  {" "}or{" "}
-                  <a
-                    href="https://wa.me/2348092697385"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    WhatsApp us
-                  </a>
-                </p>
+              <div className="rounded-2xl border bg-card p-5">
+                <ShieldCheck className="h-5 w-5 text-primary mb-3" />
+                <h3 className="font-semibold mb-1">Order In Progress</h3>
+                <p className="text-sm text-muted-foreground">Your registration or service request has entered processing.</p>
+              </div>
+              <div className="rounded-2xl border bg-card p-5">
+                <PhoneCall className="h-5 w-5 text-primary mb-3" />
+                <h3 className="font-semibold mb-1">Team Follow-up</h3>
+                <p className="text-sm text-muted-foreground">We will contact you shortly with next steps and updates.</p>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <Link href="/shop">
-                <Button className="w-full" size="lg">
-                  Continue Shopping
+            <div className="mt-8 rounded-2xl border bg-card p-6 space-y-2 text-center">
+              <h3 className="font-semibold text-lg">Need urgent support?</h3>
+              <p className="text-sm text-muted-foreground">
+                Email{" "}
+                <a href="mailto:Cleohngroupltd@gmail.com" className="text-primary hover:underline">
+                  Cleohngroupltd@gmail.com
+                </a>{" "}
+                or{" "}
+                <a
+                  href="https://wa.me/2348092697385"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  chat on WhatsApp
+                </a>
+                .
+              </p>
+            </div>
+
+            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/services">
+                <Button size="lg" className="w-full sm:w-auto">
+                  Explore More Services
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <p className="text-sm text-center text-muted-foreground">
-                Redirecting to shop in {countdown} seconds...
-              </p>
+              <Link href="/contact">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                  Contact Support Team
+                </Button>
+              </Link>
             </div>
-          </CardContent>
-        </Card>
+
+            <p className="mt-6 text-sm text-center text-muted-foreground">
+              Redirecting to services in {countdown} seconds...
+            </p>
+          </div>
+        </section>
       </main>
 
       <Footer />

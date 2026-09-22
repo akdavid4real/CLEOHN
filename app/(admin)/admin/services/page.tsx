@@ -14,9 +14,11 @@ import {
   Lock,
   FileCheck,
   Monitor,
-  Loader2
+  Loader2,
+  Search
 } from "lucide-react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 interface ServiceCategory {
   id: string;
@@ -27,6 +29,18 @@ interface ServiceCategory {
   order: number;
   itemCount?: number;
   packageCount?: number;
+}
+
+interface SearchablePackage {
+  id: string;
+  name: string;
+  price: number;
+  serviceItem: {
+    title: string;
+    service: {
+      name: string;
+    };
+  };
 }
 
 // Icon mapping
@@ -40,6 +54,8 @@ const iconMap: Record<string, any> = {
 export default function ServicesPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [packages, setPackages] = useState<SearchablePackage[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -48,7 +64,15 @@ export default function ServicesPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch("/api/admin/services");
+      const [response, packagesResponse] = await Promise.all([
+        fetch("/api/admin/services"),
+        fetch("/api/admin/services/packages"),
+      ]);
+
+      if (packagesResponse.ok) {
+        setPackages(await packagesResponse.json());
+      }
+
       if (response.ok) {
         const data = await response.json();
 
@@ -88,6 +112,14 @@ export default function ServicesPage() {
     return iconMap[iconName] || Layers;
   };
 
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const matchingPackages = normalizedSearchQuery
+    ? packages.filter((pkg) =>
+        [pkg.name, pkg.serviceItem.title, pkg.serviceItem.service.name]
+          .some((value) => value.toLowerCase().includes(normalizedSearchQuery))
+      )
+    : [];
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -116,6 +148,47 @@ export default function ServicesPage() {
           </p>
         </div>
       </div>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Find a service or package</CardTitle>
+          <CardDescription>
+            Search by service, package name, or category, then open it directly for editing.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <div className="relative max-w-xl">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="e.g. Limited Liability, VIP, Trustee"
+              className="pl-9"
+            />
+          </div>
+          {normalizedSearchQuery ? (
+            matchingPackages.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {matchingPackages.map((pkg) => (
+                  <div key={pkg.id} className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-medium">{pkg.serviceItem.title} — {pkg.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {pkg.serviceItem.service.name} · ₦{pkg.price.toLocaleString()}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => router.push(`/admin/packages/${pkg.id}/edit`)}>
+                      Edit package
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No matching package found.</p>
+            )
+          ) : null}
+        </CardContent>
+      </Card>
 
       {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-3">

@@ -15,7 +15,7 @@ import { Footer } from "@/components/footer";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, getTotalPrice, clearCart } = useCart();
+  const { items, getTotalPrice } = useCart();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -64,7 +64,6 @@ export default function CheckoutPage() {
           const url = new URL(authorizationUrl);
           // Only allow Paystack domains
           if (url.hostname === 'checkout.paystack.com' || url.hostname.endsWith('.paystack.co')) {
-            clearCart();
             window.location.href = authorizationUrl;
           } else {
             toast.error("Invalid payment URL received");
@@ -73,7 +72,18 @@ export default function CheckoutPage() {
           toast.error("Invalid payment URL format");
         }
       } else {
-        toast.error("Failed to initialize payment");
+        let errorMessage = "Failed to initialize payment";
+
+        try {
+          const errorData = await response.json();
+          if (typeof errorData?.error === "string" && errorData.error.trim().length > 0) {
+            errorMessage = errorData.error;
+          }
+        } catch {
+          // Ignore JSON parse errors and use fallback message
+        }
+
+        toast.error(errorMessage);
       }
     } catch (error) {
       toast.error("An error occurred");

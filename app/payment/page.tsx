@@ -7,23 +7,29 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CreditCard, Lock } from 'lucide-react'
 
 export default function PaymentPage() {
   const [selectedService, setSelectedService] = useState('')
+  const [services, setServices] = useState<Array<{ name: string; price: number }>>([])
 
-  const services = [
-    { name: 'Business Name - Standard Package', price: '45,000' },
-    { name: 'Business Name - VIP Package', price: '60,000' },
-    { name: 'Company (LLC) - Standard Package', price: '100,000' },
-    { name: 'Company (LLC) - Complete Ownership Package', price: '165,000' },
-    { name: 'Company (LLC) - VIP Package', price: '270,000' },
-    { name: 'Company (LLC) - Premium Exclusive Package', price: '650,000' },
-    { name: 'Incorporated Trustee - Standard Package', price: '150,000' },
-    { name: 'Incorporated Trustee - VIP Package', price: '200,000' },
-    { name: 'Trademark', price: '70,000' }
-  ]
+  useEffect(() => {
+    async function loadServices() {
+      try {
+        const response = await fetch('/api/pricing-featured')
+        if (!response.ok) throw new Error('Unable to load registration packages')
+        const data = await response.json()
+        setServices((data.packages || []).map((pkg: { title: string; subtitle: string; price: number }) => ({
+          name: `${pkg.title} — ${pkg.subtitle}`,
+          price: pkg.price,
+        })))
+      } catch (error) {
+        console.error('Error loading registration packages:', error)
+      }
+    }
+    loadServices()
+  }, [])
 
   return (
     <div className="min-h-screen">
@@ -53,7 +59,7 @@ export default function PaymentPage() {
                     <SelectContent>
                       {services.map((service) => (
                         <SelectItem key={service.name} value={service.name}>
-                          {service.name} - ₦{service.price}
+                          {service.name} - ₦{service.price.toLocaleString()}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -65,7 +71,7 @@ export default function PaymentPage() {
                     <div className="flex justify-between items-center text-lg">
                       <span className="font-semibold">Total Amount:</span>
                       <span className="text-3xl font-bold text-accent">
-                        ₦{services.find(s => s.name === selectedService)?.price}
+                        ₦{services.find(s => s.name === selectedService)?.price.toLocaleString()}
                       </span>
                     </div>
                   </div>

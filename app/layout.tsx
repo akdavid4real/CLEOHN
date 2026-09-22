@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { FloatingWhatsApp } from '@/components/floating-whatsapp'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
 const geist = Geist({ 
@@ -35,6 +36,7 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
       <body className={`font-sans antialiased`}>
         {children}
+        <Toaster />
         <FloatingWhatsApp />
         <Analytics />
       </body>

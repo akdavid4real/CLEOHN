@@ -25,7 +25,7 @@ export async function initializePayment(
   const reference = params.reference || `CLEOHN-${nanoid(16)}`;
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const callbackUrl = params.callbackUrl || `${baseUrl}/api/checkout/verify`;
+  const callbackUrl = params.callbackUrl || `${baseUrl}/checkout/verify`;
 
   const response = await paystackFetch("/transaction/initialize", {
     method: "POST",
