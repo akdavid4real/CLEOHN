@@ -17,8 +17,7 @@ function createSafeRedirectUrl(path: string, baseUrl: string, params?: Record<st
     // Add query parameters if provided
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        // Sanitize parameter values
-        const sanitizedValue = encodeURIComponent(value.replace(/[<>"'&]/g, ''));
+        const sanitizedValue = value.replace(/[<>"'&]/g, "");
         url.searchParams.set(key, sanitizedValue);
       });
     }
@@ -34,19 +33,32 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const reference = searchParams.get("reference");
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
+    const baseUrl = request.nextUrl.origin || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const responseMode = searchParams.get("response");
+    const isJsonResponse = responseMode === "json";
+
+    const resolveOutcome = (path: string, params?: Record<string, string>) => {
+      const redirectUrl = createSafeRedirectUrl(path, baseUrl, params);
+
+      if (isJsonResponse) {
+        return NextResponse.json({
+          ok: path === "/checkout/success",
+          redirectUrl,
+        });
+      }
+
+      return NextResponse.redirect(redirectUrl);
+    };
 
     if (!reference) {
-      const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'missing_reference' });
-      return NextResponse.redirect(cancelUrl);
+      return resolveOutcome("/checkout/cancel", { error: "missing_reference" });
     }
 
     // Verify payment with Paystack
     const verificationResponse = await verifyPayment(reference);
 
     if (!verificationResponse.status) {
-      const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'verification_failed' });
-      return NextResponse.redirect(cancelUrl);
+      return resolveOutcome("/checkout/cancel", { error: "verification_failed" });
     }
 
     const paymentData = verificationResponse.data;
@@ -59,8 +71,7 @@ export async function GET(request: NextRequest) {
       .limit(1);
 
     if (!order) {
-      const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'order_not_found' });
-      return NextResponse.redirect(cancelUrl);
+      return resolveOutcome("/checkout/cancel", { error: "order_not_found" });
     }
 
     // Check if transaction already exists to prevent duplicates
@@ -74,8 +85,7 @@ export async function GET(request: NextRequest) {
     const paidAmount = paymentData.amount / 100;
     if (Math.abs(paidAmount - order.total) > 0.01) {
       console.error(`Payment amount mismatch: expected ${order.total}, got ${paidAmount}`);
-      const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'amount_mismatch' });
-      return NextResponse.redirect(cancelUrl);
+      return resolveOutcome("/checkout/cancel", { error: "amount_mismatch" });
     }
 
     // Check if payment was successful
@@ -125,8 +135,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Redirect to success page
-      const successUrl = createSafeRedirectUrl('/checkout/success', baseUrl, { order: order.orderNumber });
-      return NextResponse.redirect(successUrl);
+      return resolveOutcome("/checkout/success", { order: order.orderNumber });
     } else {
       // Payment failed or abandoned
       if (order.paymentStatus !== "failed") {
@@ -153,13 +162,20 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'payment_failed' });
-      return NextResponse.redirect(cancelUrl);
+      return resolveOutcome("/checkout/cancel", { error: "payment_failed" });
     }
   } catch (error) {
     console.error("Payment verification error:", error);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = request.nextUrl.origin || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'verification_error' });
+
+    if (request.nextUrl.searchParams.get("response") === "json") {
+      return NextResponse.json({
+        ok: false,
+        redirectUrl: cancelUrl,
+      });
+    }
+
     return NextResponse.redirect(cancelUrl);
   }
 }

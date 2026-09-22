@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const requestOrigin = request.nextUrl.origin;
     const { customer, items, total } = body;
 
     // Rate limiting by email
@@ -195,6 +196,7 @@ export async function POST(request: NextRequest) {
       email: sanitizedCustomer.email,
       amount: total * 100, // Convert to kobo
       reference: orderReference,
+      callbackUrl: `${requestOrigin}/checkout/verify`,
       metadata: sanitizeMetadata({
         orderId: order.id,
         orderNumber: orderReference,
