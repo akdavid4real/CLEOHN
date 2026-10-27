@@ -84,6 +84,7 @@ export async function DELETE(
       message: "Product deleted successfully",
     });
   } catch (error) {
+    console.error("Error deleting product:", error);
     return new Response("Internal server error", { status: 500 });
   }
 }

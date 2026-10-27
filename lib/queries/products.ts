@@ -4,6 +4,8 @@ import {
   products,
   productImages,
   productVariants,
+  cartItems,
+  orderItems,
 } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -149,6 +151,13 @@ export async function updateProduct(
 }
 
 export async function deleteProduct(id: string) {
+  await db.delete(cartItems).where(eq(cartItems.productId, id));
+
+  await db
+    .update(orderItems)
+    .set({ productId: null })
+    .where(eq(orderItems.productId, id));
+
   await db.delete(products).where(eq(products.id, id));
 }
 

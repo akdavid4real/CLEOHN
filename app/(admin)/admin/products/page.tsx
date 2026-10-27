@@ -74,7 +74,6 @@ export default function AdminProductsPage() {
     const previousProducts = products;
     setProducts(prev => prev.filter(p => p.id !== id));
     setDeleteModal({ open: false, product: null });
-    toast.success("Product deleted");
 
     try {
       const response = await fetch(`/api/admin/products/${id}`, {
@@ -85,7 +84,10 @@ export default function AdminProductsPage() {
         // Revert on error
         setProducts(previousProducts);
         toast.error("Failed to delete product");
+        return;
       }
+
+      toast.success("Product deleted");
     } catch (error) {
       // Revert on error
       setProducts(previousProducts);
