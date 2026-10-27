@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
+import { readStoredAttribution } from "@/lib/attribution";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -53,6 +54,7 @@ export default function CheckoutPage() {
             pricePerUnit: item.price,
           })),
           total: getTotalPrice(),
+          attribution: readStoredAttribution(),
         }),
       });
 

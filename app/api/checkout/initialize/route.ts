@@ -4,6 +4,7 @@ import { orders, orderItems, products, servicePackages } from "@/lib/db/schema";
 import { initializePayment } from "@/lib/paystack/initialize";
 import { validateEmail, validatePhone, validateAmount, sanitizeString, sanitizeMetadata } from "@/lib/paystack/validation";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/paystack/rate-limit";
+import { pickAttribution } from "@/lib/attribution";
 import { nanoid } from "nanoid";
 import { eq } from "drizzle-orm";
 
@@ -11,6 +12,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { customer, items, total } = body;
+    const attribution = pickAttribution(body.attribution);
 
     // Rate limiting by email
     const rateLimitResult = checkRateLimit(customer?.email || 'anonymous', 3, 300000); // 3 requests per 5 minutes
@@ -200,6 +202,7 @@ export async function POST(request: NextRequest) {
         orderNumber: orderReference,
         customerName: sanitizedCustomer.name,
         customerPhone: sanitizedCustomer.phone,
+        ...attribution,
       }),
     });
 

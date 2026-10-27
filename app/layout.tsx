@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  ),
   title: 'CLEOHN - Nigerian CAC Registration Agency',
   description: 'Trusted Nigerian CAC Registration Agency for Business Name, Company (LLC), NGO/Trustees, TIN, SCUML, and Trademark registration services.',
   generator: 'Ak David',
