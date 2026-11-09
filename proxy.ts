@@ -33,7 +33,9 @@ export function proxy(request: NextRequest) {
   if (
     pathname.startsWith('/api/') && 
     !pathname.includes('/admin/') && 
-    !pathname.includes('/auth/')
+    !pathname.includes('/auth/') &&
+    !pathname.startsWith('/api/checkout/') &&
+    !pathname.startsWith('/api/webhooks/')
   ) {
     response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120')
   }

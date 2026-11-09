@@ -7,7 +7,7 @@ import {
   cartItems,
   orderItems,
 } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type {
   CreateProductCategoryInput,
@@ -175,8 +175,10 @@ export async function getPrimaryImage(productId: string) {
   const result = await db
     .select()
     .from(productImages)
-    .where(eq(productImages.productId, productId))
-    .where(eq(productImages.isPrimary, true))
+    .where(and(
+      eq(productImages.productId, productId),
+      eq(productImages.isPrimary, true),
+    ))
     .limit(1);
   return result[0];
 }

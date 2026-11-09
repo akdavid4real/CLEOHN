@@ -34,7 +34,9 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const reference = searchParams.get("reference");
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
+    // Build redirects from the current request origin so production payments
+    // never fall back to the development localhost URL.
+    const baseUrl = request.nextUrl.origin;
 
     if (!reference) {
       const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'missing_reference' });
@@ -158,7 +160,7 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error("Payment verification error:", error);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = request.nextUrl.origin;
     const cancelUrl = createSafeRedirectUrl('/checkout/cancel', baseUrl, { error: 'verification_error' });
     return NextResponse.redirect(cancelUrl);
   }

@@ -8,7 +8,6 @@ export async function getProductReviews(productId: string) {
       id: productReviews.id,
       productId: productReviews.productId,
       customerName: productReviews.customerName,
-      customerEmail: productReviews.customerEmail,
       rating: productReviews.rating,
       content: productReviews.content, // Fixed: use content not reviewText
       title: productReviews.title,

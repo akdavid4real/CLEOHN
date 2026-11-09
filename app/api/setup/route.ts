@@ -38,11 +38,11 @@ export async function POST(request: Request) {
     const adminPassword = password || 'Admin123!'
 
     // Check if admin already exists
-    const existingAdmin = await db
+    const [existingAdmin] = await db
       .select()
       .from(users)
       .where(eq(users.email, adminEmail))
-      .get()
+      .limit(1)
 
     if (existingAdmin) {
       return Response.json(

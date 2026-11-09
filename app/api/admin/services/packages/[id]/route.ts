@@ -5,9 +5,10 @@ import { eq } from "drizzle-orm";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getSession();
 
     if (!session || session.user.role !== "admin") {
@@ -27,7 +28,7 @@ export async function PATCH(
     await db
       .update(servicePackages)
       .set({ featured })
-      .where(eq(servicePackages.id, params.id));
+      .where(eq(servicePackages.id, id));
 
     return Response.json({ success: true });
   } catch (error) {

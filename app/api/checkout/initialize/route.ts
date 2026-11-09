@@ -89,10 +89,11 @@ export async function POST(request: NextRequest) {
         }
 
         // CRITICAL: Validate stock availability
-        if (product.stock < item.quantity) {
+        const availableStock = product.stock ?? 0;
+        if (availableStock < item.quantity) {
           return NextResponse.json(
             {
-              error: `Insufficient stock for ${item.productName}. Available: ${product.stock}, Requested: ${item.quantity}`
+              error: `Insufficient stock for ${item.productName}. Available: ${availableStock}, Requested: ${item.quantity}`
             },
             { status: 400 }
           );
@@ -197,6 +198,9 @@ export async function POST(request: NextRequest) {
       email: sanitizedCustomer.email,
       amount: total * 100, // Convert to kobo
       reference: orderReference,
+      // Paystack must return to the host that initiated checkout. Using the
+      // request origin also works for custom domains and preview deployments.
+      callbackUrl: `${request.nextUrl.origin}/api/checkout/verify`,
       metadata: sanitizeMetadata({
         orderId: order.id,
         orderNumber: orderReference,

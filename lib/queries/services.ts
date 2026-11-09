@@ -1,5 +1,5 @@
 import { db } from "@/lib/db/client";
-import { services, servicePackages, packageFeatures } from "@/lib/db/schema";
+import { services, serviceItems, servicePackages, packageFeatures } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type {
@@ -30,13 +30,14 @@ export async function getServiceWithPackages(serviceId: string) {
   if (!service) return null;
 
   const packages = await db
-    .select()
+    .select({ package: servicePackages })
     .from(servicePackages)
-    .where(eq(servicePackages.serviceId, serviceId))
+    .innerJoin(serviceItems, eq(servicePackages.serviceItemId, serviceItems.id))
+    .where(eq(serviceItems.serviceId, serviceId))
     .orderBy(servicePackages.order);
 
   const packagesWithFeatures = await Promise.all(
-    packages.map(async (pkg) => {
+    packages.map(async ({ package: pkg }) => {
       const features = await db
         .select()
         .from(packageFeatures)
@@ -86,9 +87,10 @@ export async function deleteService(id: string) {
 
 export async function getAllServicePackages(serviceId: string) {
   return db
-    .select()
+    .select({ package: servicePackages })
     .from(servicePackages)
-    .where(eq(servicePackages.serviceId, serviceId))
+    .innerJoin(serviceItems, eq(servicePackages.serviceItemId, serviceItems.id))
+    .where(eq(serviceItems.serviceId, serviceId))
     .orderBy(servicePackages.order);
 }
 

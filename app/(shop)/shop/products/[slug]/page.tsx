@@ -336,12 +336,6 @@ export default async function ProductDetailPage({
                   <dd className="font-medium">{product.sku}</dd>
                 </div>
               )}
-              <div className="flex justify-between gap-4 border-b py-2">
-                <dt className="text-muted-foreground">Availability</dt>
-                <dd className="font-medium">
-                  {inStock ? `${stock} in stock` : "Out of stock"}
-                </dd>
-              </div>
             </dl>
           </section>
 

@@ -1,9 +1,19 @@
 import { db } from "@/lib/db/client";
 import { services } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET(request: Request) {
   try {
+    if (process.env.NODE_ENV === "production") {
+      return Response.json({ error: "Debug endpoints disabled in production" }, { status: 403 });
+    }
+
+    const session = await getSession();
+    if (!session || session.user.role !== "admin") {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id") || "2odo1U9EjyOq8MoXQMV22";
 
@@ -13,7 +23,7 @@ export async function GET(request: Request) {
     console.log("ID length:", id.length);
 
     // Try the exact same query as getServiceById
-    const result = await db.select().from(services).where(eq(services.id, id)).get();
+    const [result] = await db.select().from(services).where(eq(services.id, id)).limit(1);
 
     console.log("Result:", result);
     console.log("Result type:", typeof result);

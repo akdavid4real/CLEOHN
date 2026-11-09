@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { orders, orderItems } from "@/lib/db/schema";
-import { desc, eq, like } from "drizzle-orm";
+import { and, desc, eq, like, or } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
 
-    let query = db.select().from(orders);
+    const filters = [];
 
     // Filter by status
     if (status) {
-      query = query.where(eq(orders.status, status)) as any;
+      filters.push(eq(orders.status, status as "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled"));
     }
 
     // Search by order number or customer name/email
@@ -32,13 +32,20 @@ export async function GET(request: NextRequest) {
         .replace(/[^\w\s@.-]/g, ''); // Only allow alphanumeric, spaces, @, ., -
 
       if (sanitizedSearch.length > 0) {
-        query = query.where(
-          like(orders.orderNumber, `%${sanitizedSearch}%`)
-        ) as any;
+        const pattern = `%${sanitizedSearch}%`;
+        filters.push(or(
+          like(orders.orderNumber, pattern),
+          like(orders.customerName, pattern),
+          like(orders.customerEmail, pattern),
+        ));
       }
     }
 
-    const orderList = await query.orderBy(desc(orders.createdAt));
+    const orderList = await db
+      .select()
+      .from(orders)
+      .where(filters.length ? and(...filters) : undefined)
+      .orderBy(desc(orders.createdAt));
 
     return NextResponse.json({ orders: orderList });
   } catch (error) {

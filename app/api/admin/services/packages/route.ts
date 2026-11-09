@@ -18,19 +18,21 @@ export async function GET() {
         price: servicePackages.price,
         featured: servicePackages.featured,
         processingTime: servicePackages.processingTime,
-        serviceItem: {
-          title: serviceItems.title,
-          service: {
-            name: services.name,
-          },
-        },
+        serviceItemTitle: serviceItems.title,
+        serviceName: services.name,
       })
       .from(servicePackages)
       .innerJoin(serviceItems, eq(servicePackages.serviceItemId, serviceItems.id))
       .innerJoin(services, eq(serviceItems.serviceId, services.id))
       .orderBy(services.name, serviceItems.title, servicePackages.name);
 
-    return Response.json(packages);
+    return Response.json(packages.map(({ serviceItemTitle, serviceName, ...pkg }) => ({
+      ...pkg,
+      serviceItem: {
+        title: serviceItemTitle,
+        service: { name: serviceName },
+      },
+    })));
   } catch (error) {
     console.error("Error fetching packages:", error);
     return new Response("Internal server error", { status: 500 });
