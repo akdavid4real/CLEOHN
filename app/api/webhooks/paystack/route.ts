@@ -5,12 +5,53 @@ import {
   verifyWebhookSignature,
   parseWebhookEvent,
 } from "@/lib/paystack/webhook";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
+
+// Paystack retries webhooks, so handlers must be idempotent and must never
+// downgrade an order that has already been marked as paid.
 
 // Utility function to sanitize log inputs
 function sanitizeForLog(input: string): string {
-  return input.replace(/[\r\n\t]/g, '').substring(0, 100);
+  return String(input ?? '').replace(/[\r\n\t]/g, '').substring(0, 100);
+}
+
+/**
+ * Decrement stock for an order exactly once, guarded by the order's payment
+ * status so concurrent verify + webhook deliveries cannot double-decrement.
+ * Returns true when this call performed the transition.
+ */
+async function markOrderPaidAndDecrementStock(orderId: string): Promise<boolean> {
+  const updated = await db
+    .update(orders)
+    .set({
+      status: "processing",
+      paymentStatus: "paid",
+    })
+    .where(and(eq(orders.id, orderId), ne(orders.paymentStatus, "paid")))
+    .returning({ id: orders.id });
+
+  if (updated.length === 0) {
+    return false;
+  }
+
+  const items = await db
+    .select()
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+
+  for (const item of items) {
+    if (item.productId) {
+      await db
+        .update(products)
+        .set({
+          stock: sql`GREATEST(COALESCE(${products.stock}, 0) - ${item.quantity}, 0)`,
+        })
+        .where(eq(products.id, item.productId));
+    }
+  }
+
+  return true;
 }
 
 export async function POST(request: NextRequest) {
@@ -59,9 +100,13 @@ export async function POST(request: NextRequest) {
         console.log(`Unhandled webhook event: ${sanitizeForLog(event.event)}`);
     }
 
+    // Always acknowledge once the event has been processed so Paystack stops
+    // retrying.
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("Webhook processing error:", error);
+    // Returning 500 asks Paystack to retry, which is what we want on transient
+    // database failures.
     return NextResponse.json(
       { error: "Webhook processing failed" },
       { status: 500 }
@@ -73,18 +118,6 @@ async function handleChargeSuccess(event: any) {
   const { reference, amount, channel, currency, paid_at, metadata } = event.data;
 
   try {
-    // Check if transaction already exists FIRST to prevent duplicates
-    const [existingTransaction] = await db
-      .select()
-      .from(paymentTransactions)
-      .where(eq(paymentTransactions.paystackReference, reference))
-      .limit(1);
-
-    if (existingTransaction) {
-      console.log(`Transaction already recorded for reference: ${sanitizeForLog(reference)}`);
-      return;
-    }
-
     // Find order by reference
     const [order] = await db
       .select()
@@ -104,47 +137,34 @@ async function handleChargeSuccess(event: any) {
       return;
     }
 
-    // Update order status - set to processing after successful payment
+    // Update order status - set to processing after successful payment.
+    // IMPORTANT: this must not depend on whether a transaction row already
+    // exists. Previously a pre-existing transaction (e.g. one recorded by the
+    // verify endpoint, or a replayed webhook) caused an early return that left
+    // the order stuck on payment_status = 'pending'.
+    const transitioned = await markOrderPaidAndDecrementStock(order.id);
+
+    // Record payment transaction (idempotent on the unique reference).
     await db
-      .update(orders)
-      .set({
-        status: "processing",
-        paymentStatus: "paid",
+      .insert(paymentTransactions)
+      .values({
+        id: nanoid(),
+        orderId: order.id,
+        paystackReference: reference,
+        amount: amount / 100, // Convert from kobo to naira
+        status: "success",
+        channel: channel,
+        currency: currency,
+        paidAt: paid_at ? new Date(paid_at) : new Date(),
+        metadata: JSON.stringify(metadata || {}),
       })
-      .where(eq(orders.id, order.id));
+      .onConflictDoNothing();
 
-    // Record payment transaction
-    await db.insert(paymentTransactions).values({
-      id: nanoid(),
-      orderId: order.id,
-      paystackReference: reference,
-      amount: amount / 100, // Convert from kobo to naira
-      status: "success",
-      channel: channel,
-      currency: currency,
-      paidAt: new Date(paid_at),
-      metadata: JSON.stringify(metadata || {}),
-    });
-
-    // CRITICAL: Decrement stock for products in this order
-    const items = await db
-      .select()
-      .from(orderItems)
-      .where(eq(orderItems.orderId, order.id));
-
-    for (const item of items) {
-      if (item.productId) {
-        // Decrement product stock
-        await db
-          .update(products)
-          .set({
-            stock: sql`${products.stock} - ${item.quantity}`,
-          })
-          .where(eq(products.id, item.productId));
-      }
-    }
-
-    console.log(`Order ${sanitizeForLog(reference)} marked as paid and stock updated`);
+    console.log(
+      transitioned
+        ? `Order ${sanitizeForLog(reference)} marked as paid and stock updated`
+        : `Order ${sanitizeForLog(reference)} was already marked as paid`
+    );
   } catch (error) {
     console.error("Error handling charge success:", error);
     throw error;
@@ -155,18 +175,6 @@ async function handleChargeFailed(event: any) {
   const { reference, amount, channel, currency, metadata } = event.data;
 
   try {
-    // Check if transaction already exists to prevent duplicates
-    const [existingTransaction] = await db
-      .select()
-      .from(paymentTransactions)
-      .where(eq(paymentTransactions.paystackReference, reference))
-      .limit(1);
-
-    if (existingTransaction) {
-      console.log(`Failed transaction already recorded for reference: ${sanitizeForLog(reference)}`);
-      return;
-    }
-
     // Find order by reference
     const [order] = await db
       .select()
@@ -179,26 +187,37 @@ async function handleChargeFailed(event: any) {
       return;
     }
 
-    // Update order status
+    // Never downgrade an order that has already been paid. Paystack can send
+    // a late charge.failed for an earlier attempt on the same order.
+    if (order.paymentStatus === "paid") {
+      console.log(`Ignoring charge.failed for already-paid order ${sanitizeForLog(reference)}`);
+      return;
+    }
+
+    // Update order status - only from pending, so a failed attempt does not
+    // clobber a refund or a manual correction.
     await db
       .update(orders)
       .set({
         status: "cancelled",
         paymentStatus: "failed",
       })
-      .where(eq(orders.id, order.id));
+      .where(and(eq(orders.id, order.id), eq(orders.paymentStatus, "pending")));
 
-    // Record failed transaction
-    await db.insert(paymentTransactions).values({
-      id: nanoid(),
-      orderId: order.id,
-      paystackReference: reference,
-      amount: amount / 100,
-      status: "failed",
-      channel: channel,
-      currency: currency,
-      metadata: JSON.stringify(metadata || {}),
-    });
+    // Record failed transaction (idempotent).
+    await db
+      .insert(paymentTransactions)
+      .values({
+        id: nanoid(),
+        orderId: order.id,
+        paystackReference: reference,
+        amount: amount / 100,
+        status: "failed",
+        channel: channel,
+        currency: currency,
+        metadata: JSON.stringify(metadata || {}),
+      })
+      .onConflictDoNothing();
 
     console.log(`Order ${sanitizeForLog(reference)} marked as failed`);
   } catch (error) {

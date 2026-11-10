@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -15,7 +15,8 @@ interface OrderItem {
   productName: string;
   quantity: number;
   pricePerUnit: number;
-  subtotal: number;
+  // NOTE: there is no `subtotal` column on order_items — the line total is
+  // derived from pricePerUnit * quantity.
 }
 
 interface Transaction {
@@ -52,6 +53,7 @@ export default function AdminOrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isReconciling, setIsReconciling] = useState(false);
 
   useEffect(() => {
     if (orderId) {
@@ -73,7 +75,15 @@ export default function AdminOrderDetailPage() {
     }
   };
 
+  // Order fulfilment status and payment status are different things. Updating
+  // fulfilment status must never be used to "fix" a pending payment.
   const handleStatusUpdate = async (newStatus: string) => {
+    // Fulfilment can be advanced manually, but make it obvious when the money
+    // hasn't been confirmed so a stuck payment doesn't get shipped unnoticed.
+    if (newStatus === "delivered" && order?.paymentStatus !== "paid") {
+      toast.warning("Heads up: this order is not marked as paid yet. Verify the payment with Paystack.");
+    }
+
     setIsUpdating(true);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}`, {
@@ -97,12 +107,45 @@ export default function AdminOrderDetailPage() {
     }
   };
 
-  const formatPrice = (price: number) => {
+  // Re-check Paystack for this order and sync payment status when the charge
+  // actually succeeded but our records were never updated.
+  const handleReconcilePayment = async () => {
+    setIsReconciling(true);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/reconcile`, {
+        method: "POST",
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.reconciled) {
+        toast.success("Payment confirmed and order marked as paid");
+        fetchOrder();
+      } else if (response.ok) {
+        toast.info(data.message || "Paystack has no successful payment for this order yet");
+      } else {
+        toast.error(data.error || "Failed to reconcile payment");
+      }
+    } catch (error) {
+      toast.error("An error occurred");
+    } finally {
+      setIsReconciling(false);
+    }
+  };
+
+  const formatPrice = (price: number | null | undefined) => {
+    // Guard against missing/null money values (e.g. an unmapped column) so the
+    // UI never renders "₦NaN".
+    const value = typeof price === "number" && Number.isFinite(price) ? price : 0;
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
-    }).format(price);
+    }).format(value);
   };
+
+  // Line total: order_items stores price_per_unit and quantity, not a
+  // pre-computed subtotal.
+  const getLineTotal = (item: OrderItem) =>
+    (item.pricePerUnit ?? 0) * (item.quantity ?? 0);
 
   if (isLoading) {
     return (
@@ -155,7 +198,7 @@ export default function AdminOrderDetailPage() {
                         Qty: {item.quantity} × {formatPrice(item.pricePerUnit)}
                       </p>
                     </div>
-                    <p className="font-semibold">{formatPrice(item.subtotal)}</p>
+                    <p className="font-semibold">{formatPrice(getLineTotal(item))}</p>
                   </div>
                 ))}
                 <Separator />
@@ -244,6 +287,22 @@ export default function AdminOrderDetailPage() {
                 </span>
                 <OrderStatusBadge status={order.paymentStatus} />
               </div>
+              {order.paymentStatus !== "paid" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={handleReconcilePayment}
+                  disabled={isReconciling}
+                >
+                  {isReconciling ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Verify payment with Paystack
+                </Button>
+              )}
               <Separator />
               <div className="space-y-2">
                 <p className="text-sm font-medium">Update Status</p>
@@ -254,7 +313,6 @@ export default function AdminOrderDetailPage() {
                   disabled={isUpdating}
                 >
                   <option value="pending">Pending</option>
-                  <option value="paid">Paid</option>
                   <option value="processing">Processing</option>
                   <option value="shipped">Shipped</option>
                   <option value="delivered">Delivered</option>
