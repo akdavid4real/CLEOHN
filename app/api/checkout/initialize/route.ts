@@ -5,6 +5,10 @@ import { initializePayment } from "@/lib/paystack/initialize";
 import { validateEmail, validatePhone, validateAmount, sanitizeString, sanitizeMetadata } from "@/lib/paystack/validation";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/paystack/rate-limit";
 import { pickAttribution } from "@/lib/attribution";
+import {
+  createOrderNumberAllocator,
+  MAX_SEQUENCE_ATTEMPTS,
+} from "@/lib/orders/allocate-order-number";
 import { nanoid } from "nanoid";
 import { eq } from "drizzle-orm";
 
@@ -157,28 +161,65 @@ export async function POST(request: NextRequest) {
       notes: customer.notes ? sanitizeString(customer.notes, 1000) : null,
     };
 
-    // Create order reference
-    const orderReference = `ORD-${nanoid(12)}`;
+    // Create order with a readable order number (e.g. CLE-20261110-0001).
+    // The same value is used as the Paystack reference. On the rare chance two
+    // checkouts race for the same sequence, the unique constraint rejects the
+    // insert and we retry with the next sequence.
+    const orderId = nanoid();
+    const allocator = createOrderNumberAllocator();
+    let order: typeof orders.$inferSelect | undefined;
 
-    // Create order in database
-    const [order] = await db
-      .insert(orders)
-      .values({
-        id: nanoid(),
-        orderNumber: orderReference,
-        customerName: sanitizedCustomer.name,
-        customerEmail: sanitizedCustomer.email,
-        customerPhone: sanitizedCustomer.phone,
-        customerAddress: sanitizedCustomer.address,
-        notes: sanitizedCustomer.notes,
-        subtotal: total,
-        tax: 0,
-        shippingCost: 0,
-        total: total,
-        status: "pending",
-        paymentStatus: "pending",
-      })
-      .returning();
+    for (let attempt = 0; attempt < MAX_SEQUENCE_ATTEMPTS; attempt++) {
+      const orderReference = await allocator.next();
+
+      try {
+        const [inserted] = await db
+          .insert(orders)
+          .values({
+            id: orderId,
+            orderNumber: orderReference,
+            customerName: sanitizedCustomer.name,
+            customerEmail: sanitizedCustomer.email,
+            customerPhone: sanitizedCustomer.phone,
+            customerAddress: sanitizedCustomer.address,
+            notes: sanitizedCustomer.notes,
+            subtotal: total,
+            tax: 0,
+            shippingCost: 0,
+            total: total,
+            status: "pending",
+            paymentStatus: "pending",
+          })
+          .returning();
+
+        order = inserted;
+        break;
+      } catch (error: any) {
+        // 23505 = unique_violation. Only retry when the collision is on the
+        // order number; any other unique violation (e.g. a duplicate order id)
+        // is a real error and must propagate.
+        const constraint = String(
+          error?.constraint ?? error?.cause?.constraint ?? ""
+        );
+        const isOrderNumberCollision =
+          (error?.code ?? error?.cause?.code) === "23505" &&
+          (constraint === "" || /order_number/i.test(constraint));
+
+        if (!isOrderNumberCollision) throw error;
+
+        console.warn(
+          `Order number collision on attempt ${attempt + 1}, retrying with next sequence`
+        );
+      }
+    }
+
+    if (!order) {
+      console.error("Failed to allocate a unique order number");
+      return NextResponse.json(
+        { error: "Failed to create order. Please try again." },
+        { status: 500 }
+      );
+    }
 
     // Create order items using validated data
     const orderItemsData = validatedItems.map((item: any) => ({
@@ -197,13 +238,13 @@ export async function POST(request: NextRequest) {
     const paymentResponse = await initializePayment({
       email: sanitizedCustomer.email,
       amount: total * 100, // Convert to kobo
-      reference: orderReference,
+      reference: order.orderNumber,
       // Paystack must return to the host that initiated checkout. Using the
       // request origin also works for custom domains and preview deployments.
       callbackUrl: `${request.nextUrl.origin}/api/checkout/verify`,
       metadata: sanitizeMetadata({
         orderId: order.id,
-        orderNumber: orderReference,
+        orderNumber: order.orderNumber,
         customerName: sanitizedCustomer.name,
         customerPhone: sanitizedCustomer.phone,
         ...attribution,
@@ -219,7 +260,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       orderId: order.id,
-      orderNumber: orderReference,
+      orderNumber: order.orderNumber,
       authorizationUrl: paymentResponse.data.authorization_url,
       reference: paymentResponse.data.reference,
     });

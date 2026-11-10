@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
+import { CheckCircle2, ArrowRight, Loader2, Copy, Check } from "lucide-react";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import Link from "next/link";
@@ -13,6 +13,7 @@ function SuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderNumber = searchParams.get("order");
+  const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState(10);
 
   useEffect(() => {
@@ -59,7 +60,34 @@ function SuccessPageContent() {
               </p>
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">Order Number</p>
-                <p className="text-2xl font-bold font-mono">{orderNumber}</p>
+                <div className="flex items-center justify-center gap-2">
+                  <p className="text-2xl font-bold font-mono tracking-wide">{orderNumber}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    aria-label="Copy order number"
+                    onClick={async () => {
+                      if (!orderNumber) return;
+                      try {
+                        await navigator.clipboard.writeText(orderNumber);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      } catch {
+                        // Clipboard can be blocked; the number is still visible.
+                      }
+                    }}
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Keep this number handy — you'll need it for any enquiry.
+                </p>
               </div>
             </div>
 
